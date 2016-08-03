@@ -1,8 +1,8 @@
 class Wtf::Parser
 prechigh
-	left '('
-	left '*'
-	left '+'
+	nonassoc UMINUS
+	left STAR SLASH # * /
+	left PLUS HYPHEN # + -
 	right EQ
 preclow
 start target
@@ -21,11 +21,14 @@ rule
 		puts result.inspect
 	}
 
-	exp: exp '+' exp
-		 | exp '*' exp
+	exp: exp PLUS exp { result = Op2Node.new(:plus, val[0], val[2]) }
+     | exp HYPHEN exp { result = Op2Node.new(:minus, val[0], val[2]) }
+     | exp STAR exp { result = Op2Node.new(:mul, val[0], val[2]) }
+     | exp SLASH exp { result = Op2Node.new(:div, val[0], val[2]) }
+     | HYPHEN exp =UMINUS { result = Op1Node.new(:minus, val[1]) }
 		 | LPAR exp RPAR
-		 | integer
-		 | assignment
+		 | integer { result = val[0] }
+		 | assignment { result = val[0] } 
 		 | fn_def { result = val[0] }
 		 | fn_call { result = val[0] } 
 
@@ -49,15 +52,14 @@ rule
 		| fn_arg_list_real_item { result = [val[0]] }
 		| { result = []	}
 	fn_body: code_list { result = val[0] }
-	code_list:  { result = [] }
-		| exp { result = [val[0]] }
+	code_list: { result = [] }
 		| exp SEMICOLON code_list {
 			result = [val[0], *val[2]]
 		}
 
 	# function call
 	fn_call: identifier LPAR fn_call_params_list RPAR {
-			result = FnCallNode.new(val[0], val[2], l: val[0][:line], c: val[0][:col])
+			result = FnCallNode.new(val[0], val[2], l: val[0].line, c: val[0].col)
 		}
 	fn_call_params_list: exp COMMA fn_call_params_list {
 			result = [val[0], *val[2]]

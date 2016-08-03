@@ -35,6 +35,14 @@ module Wtf
 								[:RPAR, {str: $&, line: @current_line, col: @current_col }]
 							when /\A=/
 								[:EQ, {str: $&, line: @current_line, col: @current_col }]
+							when /\A\+/
+								[:PLUS, {str: $&, line: @current_line, col: @current_col }]
+							when /\A-/
+								[:HYPHEN, {str: $&, line: @current_line, col: @current_col }]
+							when /\A\*/
+								[:STAR, {str: $&, line: @current_line, col: @current_col }]
+							when /\A\//
+								[:SLASH, {str: $&, line: @current_line, col: @current_col }]
 							when /\A;/
 								[:SEMICOLON, {str: $&, line: @current_line, col: @current_col }]
 							when /\A[a-z]+/

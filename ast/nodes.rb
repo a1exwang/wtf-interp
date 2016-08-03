@@ -52,9 +52,37 @@ module Wtf
 
 	class FnCallNode < AstNode
 		attr_reader :identifier, :params
-		def initialize(id, params)
+		def initialize(id, params, l: nil, c: nil)
+			super(l: l, c: c)
 			@identifier = id
 			@params = params
+		end
+	end
+
+	class Op1Node < AstNode
+		attr_reader :op, :p1
+		def initialize(op, p1)
+			@op = op
+			@p1 = p1
+		end
+	end
+	class Op2Node < AstNode
+		attr_reader :op, :p1, :p2
+		def initialize(op, p1, p2, l: nil, c: nil)
+			super(l: l, c: c)
+			@op = op
+			@p1 = p1
+			@p2 = p2
+		end
+	end
+	class Op3Node < AstNode
+		attr_reader :op, :p1
+		def initialize(op, p1, p2, p3, l: nil, c: nil)
+			super(l: l, c: c)
+			@op = op
+			@p1 = p1
+			@p2 = p2
+			@p3 = p3
 		end
 	end
 
