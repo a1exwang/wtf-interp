@@ -5,7 +5,7 @@ prechigh
 	left PLUS HYPHEN # + -
 	right EQ
 preclow
-start target
+start root
 rule
 	# simple items
 	identifier: IDENTIFIER {
@@ -16,9 +16,8 @@ rule
 		}
 
 	# root node
-	target: exp { 
+  root: exp { 
 		result = val[0]
-		puts result.inspect
 	}
 
 	exp: exp PLUS exp { result = Op2Node.new(:plus, val[0], val[2]) }
@@ -73,12 +72,8 @@ rule
 	require_relative 'ast/nodes'
 
 ---- inner
-
-	def initialize(lexer)
-		@lexer = lexer
-	end
-
-	def parse
+	def parse(lexer)
+    @lexer = lexer
 		do_parse
 	end
 

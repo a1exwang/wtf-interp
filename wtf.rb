@@ -1,20 +1,35 @@
 require_relative 'lexer'
 require_relative 'parser'
+require_relative 'vm'
+require 'optparse'
 
-lexer = Wtf::Lexer.new
-parser = Wtf::Parser.new(lexer)
 
-if ARGV.size == 0
-	puts
-	puts 'type "Q" to quit.'
-	puts
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: ruby wtf.rb [options]"
+
+  opts.on('-s', '--stage STAGE', 'set stage') do |stage|
+    options[:stage] = stage.to_sym
+  end
+
+  opts.on('-m', '--mode MODE', 'set mode') do |mode|
+    options[:mode] = mode.to_sym
+  end
+
+  opts.on('-f', '--file FILE_PATH', 'set file') do |file|
+    options[:file_path] = file
+  end
+
+end.parse!
+
+if options[:m] == :iwtf
+  puts 'interactive wtf'
 	line = 1
 	while true
-		puts
-		print '? '
-		str = gets.chop!
-		break if /q/i =~ str
-		begin
+		print "\niwtf> "
+		str = gets&.chop!
+		break unless str
+    begin
 			lexer.load_file(str, 'iwtf', line, 1)
 			puts "= #{parser.parse}"
 		rescue ParseError
@@ -22,13 +37,23 @@ if ARGV.size == 0
 		end
 		line += 1
 	end
-elsif ARGV.size == 1
-	f = File.new(ARGV[0])
-	str = f.read
-	lexer.load_file(str, f.path, 1, 1)
-	puts "= #{parser.parse}"
-else
-	puts 'wrong argument'
-	exit 1
+  exit
 end
+
+raise "file not found: #{options[:file_path]}" unless File.exist? options[:file_path]
+
+f = File.new(options[:file_path])
+str = f.read
+
+lexer = Wtf::Lexer.new(str, f.path, 1, 1)
+parser = Wtf::Parser.new
+ast = parser.parse(lexer)
+if options[:stage] == :ast
+  puts JSON.pretty_generate(JSON.parse(ast.to_json))
+  exit
+end
+
+vm = Wtf::VM.new
+vm.execute(ast)
+vm.execute_fn('main')
 
