@@ -1,0 +1,2 @@
+- how to define a method
+	- >\_< (a, b, c) body... -\_-!
