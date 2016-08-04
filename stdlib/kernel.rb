@@ -1,6 +1,13 @@
+require_relative '../eval'
+
 module Wtf
   module Lang
-    class LiteralType
+    module Exception
+      class ModuleNotFound < ::Exception; end
+    end
+    class WtfType
+    end
+    class LiteralType < WtfType
       attr_reader :name
       def self.true_val
         @true_val ||= LiteralType.new('True')
@@ -21,7 +28,32 @@ module Wtf
         @name = name
       end
     end
+
+    class ModuleType < LiteralType
+      attr_reader :parent, :bindings, :name
+      def initialize(node, lexical_parent, bindings)
+        node.send :set_module_type, self
+        @parent = lexical_parent.current_module
+        @lexical_parent = lexical_parent
+        @bindings = bindings
+        @node = node
+        @name = node.name
+      end
+      def to_s
+        "module #{full_name}"
+      end
+      def full_name
+        if @parent
+          @parent.full_name + "::#{@name}"
+        elsif @bindings.lexical_parent
+          "function<#{@bindings.lexical_parent.location_str}>::#{@name}"
+        else
+          "::#{@name}"
+        end
+      end
+    end
   end
+
   module KernelFnDefs
     def def_globals
       defn('puts') do |env, obj|
@@ -37,6 +69,9 @@ module Wtf
           fn_def_node_call(fn, [item])
         end
         collection
+      end
+      defn('eval') do |env, str|
+        Wtf.eval(str, env.bindings)
       end
       defn('to_s') do |env, obj|
         case obj
@@ -66,7 +101,7 @@ module Wtf
         raise "wrong number of args: #{params.size} given but #{args.size} needed" unless params.size == args.size
         block.(env, *params)
       end)
-      node.assign_to_var(name)
+      node.bind_to_var(name)
       @global_bindings.wtf_def_var(name, node)
     end
     def defg(name, val)

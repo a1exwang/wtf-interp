@@ -51,8 +51,8 @@ module Wtf
 			super(l: l, c: c)
 			@identifier = id
 			@exp = exp
-			if @exp.is_a?(FnDefNode)
-				@exp.send :assign_to_var, id.name
+			if @exp.is_a?(FnDefNode) || @exp.is_a?(ModNode)
+				@exp.send :bind_to_var, id.name
 			end
     end
     def set_lexical_parent(p)
@@ -145,7 +145,7 @@ module Wtf
 		def unbind_params
 			@bindings.wtf_undef_all
 		end
-		def assign_to_var(name)
+		def bind_to_var(name)
 			@name = name
 		end
 	end
@@ -161,6 +161,45 @@ module Wtf
 			@callable.(self, params)
 		end
 	end
+
+	class ModNode < AstNode
+		attr_reader :code_list, :bindings, :name, :module_type
+		def initialize(code_list, l: nil, c: nil)
+			super(l: l, c: c)
+			@code_list = code_list
+		end
+		def to_json(*args)
+			{
+					type: :module,
+					code_list: code_list
+			}.to_json(*args)
+		end
+		def set_lexical_parent(p)
+			@bindings = VM::Bindings.new(self, p)
+			@code_list.each { |c| c.set_lexical_parent(@bindings) }
+		end
+		def bind_to_var(name)
+			@name = name unless @name
+		end
+		private
+		def set_module_type(module_type)
+			@module_type = module_type
+		end
+	end
+
+	class ModRefNode < AstNode
+		attr_reader :id_list
+		def initialize(id_list, l: nil, c: nil)
+			super(l: l, c: c)
+			@id_list = id_list
+		end
+		def to_json(*args)
+			{
+					type: :scope_ref,
+					id_list: @id_list
+			}.to_json(*args)
+		end
+  end
 
 	class LiteralNode < AstNode
 		attr_reader :value

@@ -27,7 +27,9 @@ module Wtf
 							when /\A->\s*\(/
 								[:FN_BEGIN_AND_LPAR, {str: $&, line: @current_line, col: @current_col }]
               when /\A->/
-                [:FN_BEGIN, { str: $&, line: @current_col, col: @current_col }]
+                [:FN_BEGIN, { str: $&, line: @current_line, col: @current_col }]
+							when /\A::/
+								[:COLON2, { str: $&, line: @current_line, col: @current_col}]
 							when /\A,/
 								[:COMMA, { str: $&, line: @current_line, col: @current_col }]
 							when /\A\{/
@@ -60,6 +62,8 @@ module Wtf
 								[:IF, { str: $&, line: @current_line, col: @current_col }]
 							when /\Aelse/
 								[:ELSE, { str: $&, line: @current_line, col: @current_col }]
+							when /\Amodule/
+								[:MODULE, { str: $&, line: @current_line, col: @current_col }]
 							when /\A[_a-zA-Z][_a-zA-Z0-9]*/
 								[:IDENTIFIER, {str: $&, line: @current_line, col: @current_col }]
 							when /\A\d+/

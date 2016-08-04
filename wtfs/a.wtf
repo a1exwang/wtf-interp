@@ -37,4 +37,12 @@ main = -> {
     puts("false");
   };
 
+  Kernel = module {
+    Math = module {
+      Zero = 0;
+    };
+  };
+
+  puts(Math);
+
 }

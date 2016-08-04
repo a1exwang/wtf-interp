@@ -1,0 +1,8 @@
+main = -> {
+  C = module {
+    B = module {
+      A = 1;
+    };
+  };
+  puts(C::B::A);
+}

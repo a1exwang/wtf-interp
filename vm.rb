@@ -8,11 +8,32 @@ module Wtf
     end
     attr_reader :global_bindings
     class Bindings
-      attr_reader :fn
-      def initialize(fn, lexical_parent = VM.instance.global_bindings)
-        @fn = fn
+      attr_reader :entity, :lexical_parent
+      def initialize(entity, lexical_parent = VM.instance.global_bindings)
         @bindings = {}
         @lexical_parent = lexical_parent
+        @entity = entity
+        if @entity.nil?
+          # global binding
+        elsif entity.is_a?(Wtf::ModNode)
+          @entity = nil
+          @current_module = nil
+          @current_module_proc = lambda { entity.module_type }
+        else
+          @current_module_proc = lambda { lexical_parent.current_module }
+        end
+      end
+
+      def current_module
+        if @current_module
+          @current_module
+        elsif @current_module_proc
+          @current_module = @current_module_proc.call
+          @entity ||= @current_module
+          @current_module
+        else
+          nil
+        end
       end
 
       def wtf_def_var(name, val)
@@ -41,8 +62,8 @@ module Wtf
       end
 
       def location_str
-        @fn ?
-            @fn.location_str :
+        @entity ?
+            @entity.location_str :
             '@global'
       end
 
@@ -78,6 +99,26 @@ module Wtf
     end
 
     public
+    def module_def(node, current_binding)
+      mod = Wtf::Lang::ModuleType.new(node, current_binding, node.bindings)
+      execute_code_list(node.code_list, node.bindings)
+      mod
+    end
+    def scope_ref(node, current_binding)
+      b = current_binding
+      mod = nil
+      node.id_list.each do |id|
+        mod = b.wtf_get_var(id.name)
+        # A::B::C, A and B must be modules, C could be a module or a variable
+        b = mod.bindings if mod.is_a?(Lang::ModuleType)
+      end
+      if mod
+        mod
+      else
+        raise Wtf::Lang::Exception::ModuleNotFound
+      end
+    end
+
     def fn_call(node, current_binding)
       params = []
       node.params.each do |p|
@@ -126,6 +167,10 @@ module Wtf
           values << execute(item, current_binding)
         end
         return values
+      when ModNode
+        return module_def(node, current_binding)
+      when ModRefNode
+        return scope_ref(node, current_binding)
       when FnDefNode
         return node
       when FnCallNode
@@ -162,7 +207,7 @@ module Wtf
         else
           self.execute_code_list(node.false_list, current_binding)
         end
-      when Integer, String, Array, Wtf::Lang::LiteralType
+      when Integer, String, Array, Wtf::Lang::LiteralType, Wtf::Lang::ModuleType
         return node
       else
         raise "unknown node type: '#{node.class}', value: '#{node}'"

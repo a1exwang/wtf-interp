@@ -10,13 +10,14 @@
     - list
     - \*map
     - comment
-    - \*module
+    - module
   - function
     - define a function
     - call a function
     - \*math operator is a function
     - list index operator is a function
     - a.b(c) is equivalent to b(a, c)
+  - eval
     
   - conditional expression
   

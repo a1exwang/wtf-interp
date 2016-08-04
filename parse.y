@@ -1,12 +1,13 @@
 class Wtf::Parser
 prechigh
     nonassoc LPAR
-    nonassoc DOT
+    right DOT COLON2
+	nonassoc LBRACK
 	nonassoc UMINUS
 	left STAR SLASH # * /
 	left PLUS HYPHEN # + -
 	right EQ
-	nonassoc LBRACK
+	right FN_BEGIN FN_BEGIN_AND_LPAR
 preclow
 start root
 rule
@@ -45,6 +46,8 @@ rule
      | fn_call { result = val[0] }
      | list_def { result = val[0] }
      | list_ref { result = val[0] }
+     | mod_def { result = val[0] }
+     | mod_scope { result = val[0] }
      | condition { result = val[0] }
 
 	# assignment exp
@@ -58,6 +61,12 @@ rule
 		}
 		| FN_BEGIN LBRAC fn_body RBRAC {
 			result = FnDefNode.new([], val[2], l: val[0][:line], c: val[0][:col])
+		}
+		| FN_BEGIN_AND_LPAR fn_arg_list_rpar exp {
+		    result = FnDefNode.new(val[1], [val[2]], l: val[0][:line], c: val[0][:col])
+		}
+		| FN_BEGIN exp {
+		    result = FnDefNode.new([], [val[1]], l: val[0][:line], c: val[0][:col])
 		}
 
 	fn_arg_list_rpar: fn_arg_list_real RPAR { result = val[0] }
@@ -94,6 +103,20 @@ rule
     # conditional expression
     condition: IF exp LBRAC code_list RBRAC ELSE LBRAC code_list RBRAC {
             result = IfNode.new(val[1], val[3], val[7], l: val[0][:line], c: val[0][:col])
+        }
+
+    # module definition
+    mod_def: MODULE LBRAC code_list RBRAC {
+            result = ModNode.new(val[2], l: val[0][:line], c: val[0][:col])
+        }
+    mod_scope: mod_scope_real {
+            result = ModRefNode.new(val[0], l: val[0].first&.line, c: val[0].first&.col)
+        }
+    mod_scope_real: identifier COLON2 mod_scope_real {
+            result = [val[0], *val[2]]
+        }
+        | identifier COLON2 identifier {
+            result = [val[0], val[2]]
         }
 
 ---- header
