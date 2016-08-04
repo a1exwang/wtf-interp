@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="file eval" type="RubyRunConfigurationType" factoryName="Ruby" singleton="true">
-    <module name="wtf-interp" />
+    <module name="wtf-interpreter" />
     <RUBY_RUN_CONFIG NAME="RUBY_ARGS" VALUE="-e $stdout.sync=true;$stderr.sync=true;load($0=ARGV.shift)" />
     <RUBY_RUN_CONFIG NAME="WORK DIR" VALUE="$MODULE_DIR$" />
     <RUBY_RUN_CONFIG NAME="SHOULD_USE_SDK" VALUE="false" />

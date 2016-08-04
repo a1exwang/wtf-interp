@@ -16,6 +16,7 @@ module Wtf
 				if @str.size == 0
 					return [false, '$end']
 				end
+        use_regexp = true
 				ret = case @str
 							when /\A(\n|\r|\r\n)/
 								@current_line += 1
@@ -23,8 +24,10 @@ module Wtf
 								nil
 							when /\A[ \t]+/
 								nil
-							when /\A>_</
-								[:FN_BEGIN, {str: $&, line: @current_line, col: @current_col }]
+							when /\A>_<\s*\(/
+								[:FN_BEGIN_AND_LPAR, {str: $&, line: @current_line, col: @current_col }]
+              when /\A>_</
+                [:FN_BEGIN, {str: $&, line: @current_col, col: @current_col}]
 							when /\A,/
 								[:COMMA, {str: $&, line: @current_line, col: @current_col }]
 							when /\A-_-!b/
@@ -49,14 +52,62 @@ module Wtf
 								[:IDENTIFIER, {str: $&, line: @current_line, col: @current_col }]
 							when /\A\d+/
 								[:INTEGER, {str: $&, value: $&.to_i, line: @current_line, col: @current_col }]
-							else
-								raise "unknown token '#{@str}'"
-							end
-				@current_col += $&.length
-				@str = $'
+              else
+                this_str, rest = parse_str_literal(@str, "#{@current_line}, #{@current_col}")
+                if this_str
+                  val = [:STRING, {str: rest, value: this_str, line: @current_line, col: @current_col}]
+                else
+                  raise "unknown token '#{@str}'"
+                end
+
+                @current_col += this_str.length
+                @str = rest
+                use_regexp = false
+
+                val
+              end
+        if use_regexp
+          @current_col += $&.length
+          @str = $'
+        end
 			end until ret
 			ret
-		end
+    end
+
+    private
+    def parse_str_literal(str, location_str)
+      if str[0] != '"'
+        return nil
+      end
+      str = str[1...str.size]
+      status = nil
+      result = ''
+      i = 0
+      str.each_char do |c|
+        if status == :escape
+          result += ESCAPES[c.to_sym]
+          status = nil
+        else
+          if c == '\\'
+            status = :escape
+            i += 1
+            next
+          elsif c == '"'
+            return result, str[(i+1)...str.size]
+          end
+          result += c
+        end
+        i += 1
+      end
+
+      raise "invalid string literal at #{location_str}"
+    end
+    ESCAPES = {
+        t: "\t",
+        n: "\n",
+        '\\': "\\",
+        '"': '"'
+    }
 	end
 end
 

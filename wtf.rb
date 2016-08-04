@@ -47,13 +47,22 @@ str = f.read
 
 lexer = Wtf::Lexer.new(str, f.path, 1, 1)
 parser = Wtf::Parser.new
+
+# Parser
 ast = parser.parse(lexer)
 if options[:stage] == :ast
   puts JSON.pretty_generate(JSON.parse(ast.to_json))
   exit
 end
 
-vm = Wtf::VM.new
+# AST traversing 1
+ast.set_lexical_parent(Wtf::VM.instance.global_bindings)
+if options[:stage] == :ast1
+  puts JSON.pretty_generate(JSON.parse(ast.to_json))
+  exit
+end
+
+vm = Wtf::VM.instance
 vm.execute(ast)
 vm.execute_fn('main')
 

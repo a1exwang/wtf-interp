@@ -1,9 +1,11 @@
 main = >_<
 
   fn = >_< (a,b,c) 
-    123 + 1221;
+    123 + 1221 + a;
   -_-!b;
 
   puts(fn (1,2,3));
+
+  puts("str literal: " + "xxx");
 
 -_-!b
