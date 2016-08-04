@@ -1,4 +1,5 @@
 require_relative 'ast/nodes'
+require_relative 'stdlib/kernel'
 
 module Wtf
   class VM
@@ -16,7 +17,7 @@ module Wtf
 
       def wtf_def_var(name, val)
         if @bindings.key? name
-          err_str = "Duplicate definition for #{name} error\n" +
+          err_str = "Duplicate definition of \"#{name}\" error\n" +
                     "at binding #{self.location_str}"
           raise err_str
         end
@@ -34,6 +35,9 @@ module Wtf
         err_str = "Definition of '#{name}' not found\n" +
             "at binding #{self.location_str}"
         raise Err::VarNotFound, err_str unless @bindings.key? name
+      end
+      def wtf_undef_all
+        @bindings = {}
       end
 
       def location_str
@@ -68,15 +72,9 @@ module Wtf
     def initialize
       @global_bindings = Bindings.new(nil, nil)
     end
+    include Wtf::KernelFnDefs
     def init_libs
-      g_puts = NativeFnDefNode.new([IdNode.new('str')], lambda do |params|
-            raise "wrong number of args: #{params.size}" unless params.size == 1
-            puts params.first
-      end)
-      g_puts.assign_to_var('puts')
-      @global_bindings.wtf_def_var(
-          'puts', g_puts
-      )
+      def_globals
     end
 
     public
@@ -87,22 +85,26 @@ module Wtf
       end
 
       fn_node = current_binding.wtf_get_var(node.identifier.name)
+      fn_def_node_call(fn_node, params)
+    end
+    def fn_def_node_call(node, params)
       ret = nil
-      if fn_node.native?
-        fn_node.call(params)
+      if node.native?
+        node.call(params)
       else
         # params not used
-        fn_node.bind_params(params)
-        fn_node.body.code_list.each do |code|
-          ret = execute(code, fn_node.bindings)
+        node.bind_params(params)
+        node.body.code_list.each do |code|
+          ret = execute(code, node.bindings)
         end
+        node.unbind_params
         ret
       end
     end
 
-    def execute_fn(name, current_bindings = nil)
+    def execute_fn(name, params = [], current_bindings = nil)
       current_bindings ||= @global_bindings
-      fn_call(FnCallNode.new(IdNode.new(name), []), current_bindings)
+      fn_call(FnCallNode.new(IdNode.new(name), params), current_bindings)
     end
 
     def execute(node, current_binding = nil)
@@ -118,6 +120,12 @@ module Wtf
         val = execute(node.exp, current_binding)
         current_binding.wtf_def_var(node.identifier.name, val)
         return val
+      when LstNode
+        values = []
+        node.list.each do |item|
+          values << execute(item, current_binding)
+        end
+        return values
       when FnDefNode
         return node
       when FnCallNode
@@ -147,9 +155,23 @@ module Wtf
         else
           raise 'unknown operator: ' + node.op
         end
+      when IfNode
+        val = self.execute(node.exp)
+        if self.execute_fn('true?', [val], current_binding)
+          self.execute_code_list(node.true_list, current_binding)
+        else
+          self.execute_code_list(node.false_list, current_binding)
+        end
+      when Integer, String, Array, Wtf::Lang::LiteralType
+        return node
       else
-        puts node
-        raise 'unknown node'
+        raise "unknown node type: '#{node.class}', value: '#{node}'"
+      end
+    end
+
+    def execute_code_list(code_list, bindings)
+      code_list.each do |c|
+        execute(c, bindings)
       end
     end
   end

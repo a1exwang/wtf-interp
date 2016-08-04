@@ -3,10 +3,9 @@ require_relative 'parser'
 require_relative 'vm'
 require 'optparse'
 
-
 options = {}
 OptionParser.new do |opts|
-  opts.banner = "Usage: ruby wtf.rb [options]"
+  opts.banner = 'Usage: ruby wtf.rb [options]'
 
   opts.on('-s', '--stage STAGE', 'set stage') do |stage|
     options[:stage] = stage.to_sym

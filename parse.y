@@ -1,9 +1,12 @@
 class Wtf::Parser
 prechigh
+    nonassoc LPAR
+    nonassoc DOT
 	nonassoc UMINUS
 	left STAR SLASH # * /
 	left PLUS HYPHEN # + -
 	right EQ
+	nonassoc LBRACK
 preclow
 start root
 rule
@@ -17,6 +20,11 @@ rule
 	string: STRING {
 	        result = StrNode.new(val[0][:value], l: val[0][:line], c: val[0][:col])
 	    }
+	exp_comma_list: exp COMMA exp_comma_list {
+			result = [val[0], *val[2]]
+		}
+		| exp { result = [val[0]] }
+		| { result = [] }
 
 	# root node
   root: exp { 
@@ -35,6 +43,9 @@ rule
      | assignment { result = val[0] }
      | fn_def { result = val[0] }
      | fn_call { result = val[0] }
+     | list_def { result = val[0] }
+     | list_ref { result = val[0] }
+     | condition { result = val[0] }
 
 	# assignment exp
 	assignment: identifier EQ exp {
@@ -42,13 +53,14 @@ rule
 		}
 
 	# function def
-	fn_def: FN_BEGIN_AND_LPAR fn_arg_list fn_body FN_END {
-			result = FnDefNode.new(val[1], val[2], l: val[0][:line], c: val[0][:col])
-		}	
-		| FN_BEGIN fn_body FN_END {
-			result = FnDefNode.new([], val[1], l: val[0][:line], c: val[0][:col])
+	fn_def: FN_BEGIN_AND_LPAR fn_arg_list_rpar LBRAC fn_body RBRAC {
+			result = FnDefNode.new(val[1], val[3], l: val[0][:line], c: val[0][:col])
 		}
-	fn_arg_list: fn_arg_list_real RPAR { result = val[0] }
+		| FN_BEGIN LBRAC fn_body RBRAC {
+			result = FnDefNode.new([], val[2], l: val[0][:line], c: val[0][:col])
+		}
+
+	fn_arg_list_rpar: fn_arg_list_real RPAR { result = val[0] }
 	fn_arg_list_real_item: identifier { result = val[0] }
 	fn_arg_list_real: fn_arg_list_real_item COMMA fn_arg_list_real { 
 			result = [val[0], *val[2]] 
@@ -62,16 +74,27 @@ rule
 		}
 
 	# function call
-	fn_call: identifier LPAR fn_call_params_list RPAR {
+	fn_call: identifier LPAR exp_comma_list RPAR {
 			result = FnCallNode.new(val[0], val[2], l: val[0].line, c: val[0].col)
 		}
-	fn_call_params_list: exp COMMA fn_call_params_list {
-			result = [val[0], *val[2]]
+		| exp DOT identifier LPAR exp_comma_list RPAR {
+            result = FnCallNode.new(val[2], [val[0], *val[4]], l: val[1][:line], c: val[1][:col])
 		}
-		| exp { result = [val[0]] }
-		| { result = [] }
 
 
+    # list def
+    list_def: LBRACK exp_comma_list RBRACK {
+            result = LstNode.new(val[1], l: val[0][:line], c: val[0][:col])
+        }
+    # list ref
+    list_ref: exp LBRACK exp_comma_list RBRACK {
+            result = FnCallNode.new(IdNode.new("[]"), [val[0]] + val[2], l: val[1][:line], c: val[1][:col])
+        }
+
+    # conditional expression
+    condition: IF exp LBRAC code_list RBRAC ELSE LBRAC code_list RBRAC {
+            result = IfNode.new(val[1], val[3], val[7], l: val[0][:line], c: val[0][:col])
+        }
 
 ---- header
 	require_relative 'ast/nodes'

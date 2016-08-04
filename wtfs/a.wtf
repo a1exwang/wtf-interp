@@ -1,11 +1,40 @@
-main = >_<
+# entry point function
+main = -> {
 
-  fn = >_< (a,b,c) 
+  # function definition
+  fn = -> (a,b,c) {
+    # binary operators
     123 + 1221 + a;
-  -_-!b;
+  };
 
-  puts(fn (1,2,3));
+  # function call
+  puts(fn(1,2,3));
 
-  puts("str literal: " + "xxx");
+  # string literal
+  puts("str literal: \n" + "\t tab character");
 
--_-!b
+  # high order function
+  fn1 = -> (fn) {
+    fn(3 + 5);
+  };
+  fn1(-> (val) { puts(val); });
+
+  # array literal
+  lst = [1, 2, 5, "hello world", -> { }];
+  each(lst, -> (item) { puts(item); });
+  puts(lst[3]);
+
+  # a.b(c, d) is equivalent to b(a, c, d)
+  "second traversal".puts();
+  lst.each(-> (item) { puts(item); });
+
+  # boolean and nil
+  puts([True, False, Nil]);
+
+  if (True) {
+    puts("true");
+  } else {
+    puts("false");
+  };
+
+}

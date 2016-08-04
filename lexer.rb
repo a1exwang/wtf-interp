@@ -18,20 +18,26 @@ module Wtf
 				end
         use_regexp = true
 				ret = case @str
-							when /\A(\n|\r|\r\n)/
+							when /\A(#.*)?(\n|\r|\r\n)/
 								@current_line += 1
 								@current_col = -$&.length + 1
 								nil
 							when /\A[ \t]+/
 								nil
-							when /\A>_<\s*\(/
+							when /\A->\s*\(/
 								[:FN_BEGIN_AND_LPAR, {str: $&, line: @current_line, col: @current_col }]
-              when /\A>_</
-                [:FN_BEGIN, {str: $&, line: @current_col, col: @current_col}]
+              when /\A->/
+                [:FN_BEGIN, { str: $&, line: @current_col, col: @current_col }]
 							when /\A,/
-								[:COMMA, {str: $&, line: @current_line, col: @current_col }]
-							when /\A-_-!b/
-								[:FN_END, {str: $&, line: @current_line, col: @current_col } ]
+								[:COMMA, { str: $&, line: @current_line, col: @current_col }]
+							when /\A\{/
+								[:LBRAC, { str: $&, line: @current_line, col: @current_col }]
+							when /\A}/
+								[:RBRAC, { str: $&, line: @current_line, col: @current_col }]
+							when /\A\[/
+								[:LBRACK, { str: $&, line: @current_line, col: @current_col }]
+							when /\A\]/
+								[:RBRACK, { str: $&, line: @current_line, col: @current_col }]
 							when /\A\(/
 								[:LPAR, {str: $&, line: @current_line, col: @current_col }]
 							when /\A\)/
@@ -48,7 +54,13 @@ module Wtf
 								[:SLASH, {str: $&, line: @current_line, col: @current_col }]
 							when /\A;/
 								[:SEMICOLON, {str: $&, line: @current_line, col: @current_col }]
-							when /\A[a-z]+/
+							when /\A\./
+								[:DOT, { str: $&, line: @current_line, col: @current_col }]
+							when /\Aif/
+								[:IF, { str: $&, line: @current_line, col: @current_col }]
+							when /\Aelse/
+								[:ELSE, { str: $&, line: @current_line, col: @current_col }]
+							when /\A[_a-zA-Z][_a-zA-Z0-9]*/
 								[:IDENTIFIER, {str: $&, line: @current_line, col: @current_col }]
 							when /\A\d+/
 								[:INTEGER, {str: $&, value: $&.to_i, line: @current_line, col: @current_col }]

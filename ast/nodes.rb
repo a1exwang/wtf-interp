@@ -32,6 +32,10 @@ module Wtf
 			@name = name
 		end
 
+		def is_public?
+			/\A[A-Z]/ === @name
+		end
+
     def to_json(*args)
       { 
         type: :id,
@@ -62,6 +66,28 @@ module Wtf
 				location: location_str
       }.to_json(*args)
     end
+	end
+
+	class IfNode < AstNode
+		attr_reader :exp, :true_list, :false_list
+		def initialize(exp, t, f = nil, l: nil, c: l)
+			@exp = exp
+			@true_list = t
+			@false_list = f
+		end
+		def to_json(*args)
+			{
+					type: :if,
+					exp: @exp,
+					true: @true_list,
+					false: @false_list
+			}.to_json(*args)
+		end
+		def set_lexical_parent(p)
+			@exp.set_lexical_parent(p)
+			@true_list.each { |it| it.set_lexical_parent(p) }
+			@false_list.each { |it| it.set_lexical_parent(p) }
+		end
 	end
 
 	class CodeListNode < AstNode
@@ -116,6 +142,9 @@ module Wtf
 				@bindings.wtf_def_var(@arg_list[i].name, params[i])
 			end
 		end
+		def unbind_params
+			@bindings.wtf_undef_all
+		end
 		def assign_to_var(name)
 			@name = name
 		end
@@ -129,7 +158,7 @@ module Wtf
 		end
 
 		def call(params)
-			@callable.call(params)
+			@callable.(self, params)
 		end
 	end
 
@@ -182,11 +211,16 @@ module Wtf
     def to_json(*args)
       {
         type: :fn_call,
-        id: @identifier, 
+        id: @identifier,
         params: @params,
 				location: location_str
       }.to_json(*args)
-    end
+		end
+		def set_lexical_parent(p)
+			@params.each do |param|
+				param.set_lexical_parent(p)
+			end
+		end
 	end
 
 	class VarRefNode < AstNode
@@ -201,6 +235,25 @@ module Wtf
 					id: @identifier,
 					location: location_str
 			}.to_json(*args)
+		end
+	end
+
+	class LstNode < AstNode
+		attr_reader :list
+		def initialize(list, l: nil, c: nil)
+			super(l: l, c: c)
+			@list = list
+		end
+		def to_json(*args)
+			{
+					type: :list_def,
+					list: @list
+			}.to_json(*args)
+		end
+		def set_lexical_parent(p)
+			@list.each do |l|
+				l.set_lexical_parent(p)
+			end
 		end
 	end
 
