@@ -133,10 +133,11 @@ module Wtf
       fn_node = execute(node.fn, current_binding)
       fn_def_node_call(fn_node, params, current_binding)
     end
-    def fn_def_node_call(node, params, _current_bindings)
+    def fn_def_node_call(node, params, current_bindings)
       ret = nil
       if node.native?
-        node.call(params)
+        # caller's binding
+        node.call(current_bindings, params)
       else
         # params not used
         node.bind_params(params)

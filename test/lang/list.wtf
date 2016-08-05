@@ -1,6 +1,6 @@
 main = -> {
   # list literal
-  lst = [1, 2, 5, "hello world", -> { }];
+  lst = [1, 2, 5, "hello world"];
   each(lst, -> (item) { puts(item); });
   puts(lst[3]);
 
@@ -8,7 +8,7 @@ main = -> {
   lst1 = [[1, 3, 5],
           [2, 4, 6],
           [3, 5, 7]];
-  puts("lst[0][0] = " + to_s(lst1[0][0]));
+  puts(to_s(lst1[0][0]));
 
   # boolean and nil
   puts([True, False, Nil]);

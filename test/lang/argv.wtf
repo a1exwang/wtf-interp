@@ -1,3 +1,4 @@
+#@ word "spaces ok" 123
 main = -> {
   puts(ARGV);
 }

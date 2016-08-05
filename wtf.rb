@@ -8,7 +8,7 @@ program_args = []
 ARGV.each_with_index do |arg, i|
   if arg == '-a'
     args = ARGV[0...i]
-    program_args = ARGV[i..-1]
+    program_args = ARGV[(i+1)..-1]
   end
 end
 

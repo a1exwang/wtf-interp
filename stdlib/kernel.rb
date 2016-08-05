@@ -58,7 +58,7 @@ module Wtf
   module KernelFnDefs
     def def_globals
       defn('puts') do |env, obj|
-        str = execute_fn('to_s', [obj], env.bindings)
+        str = execute_fn('to_s', [obj], env[:node].bindings)
         puts str
         str
       end
@@ -70,24 +70,30 @@ module Wtf
       end
       defn('each') do |env, collection, fn|
         collection.each do |item|
-          fn_def_node_call(fn, [item], env.bindings)
+          fn_def_node_call(fn, [item], env[:node].bindings)
         end
         collection
       end
       defn('eval') do |env, str|
-        Wtf.wtf_eval(str, env.bindings)
+        Wtf.wtf_eval(str, env[:callers_bindings])
       end
       defn('require') do |env, file_path|
-        Wtf.wtf_require(file_path, env.bindings)
+        Wtf.wtf_require(file_path, env[:callers_bindings])
       end
       defn('to_s') do |env, obj|
+        node = env[:node]
         case obj
         when AstNode
           JSON.pretty_generate(JSON.parse(obj.to_json))
         when Array
           vals = []
           obj.each do |val|
-            vals << execute_fn('to_s', [execute(val)], env.bindings)
+            result = execute(val)
+            if result.is_a?(String)
+              vals << "\"#{result}\""
+            else
+              vals << execute_fn('to_s', [result], node.bindings)
+            end
           end
           "[#{vals.join(', ')}]"
         else
@@ -97,6 +103,24 @@ module Wtf
       defn('true?') do |env, obj|
         !(obj == Lang::LiteralType.false_val || obj == Lang::LiteralType.nil_val)
       end
+      defn('whats') do |env, obj|
+        case obj
+        when String
+          'String'
+        when Integer
+          'Integer'
+        when Array
+          'List'
+        when Lang::LiteralType.true_val, Lang::LiteralType.false_val
+          'Boolean'
+        when Lang::LiteralType.nil_val
+          'Nil'
+        when Wtf::FnDefNode
+          'Function'
+        else
+          raise 'Unknown value type'
+        end
+      end
 
       def_global_vars
     end
@@ -105,7 +129,7 @@ module Wtf
     def defn(name, &block)
       args = Array.new(block.arity - 1) { |i| IdNode.new("p#{i}") }
       node = NativeFnDefNode.new(args, lambda do |env, params|
-        raise "wrong number of args: #{params.size} given but #{args.size} needed" unless params.size == args.size
+        raise "wrong number of args in function #{env[:node].name}: #{params.size} given but #{args.size} needed" unless params.size == args.size
         block.(env, *params)
       end)
       node.bind_to_var(name)

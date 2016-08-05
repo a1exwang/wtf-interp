@@ -157,8 +157,12 @@ module Wtf
 			@callable = callable
 		end
 
-		def call(params)
-			@callable.(self, params)
+		def call(callers_bindings, params)
+			env = {
+					node: self,
+					callers_bindings: callers_bindings
+			}
+			@callable.(env, params)
 		end
 	end
 
