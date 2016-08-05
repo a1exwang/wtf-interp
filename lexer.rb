@@ -9,6 +9,10 @@ module Wtf
 			@filename = filename
 			@current_line = line
 			@current_col = col
+    end
+
+		def cur_loc(str)
+			{ str: str, file: @filename, line: @current_line, col: @current_col }
 		end
 
 		def next_token
@@ -25,47 +29,47 @@ module Wtf
 							when /\A[ \t]+/
 								nil
 							when /\A->\s*\(/
-								[:FN_BEGIN_AND_LPAR, {str: $&, line: @current_line, col: @current_col }]
+								:FN_BEGIN_AND_LPAR
               when /\A->/
-                [:FN_BEGIN, { str: $&, line: @current_line, col: @current_col }]
+                :FN_BEGIN
 							when /\A::/
-								[:COLON2, { str: $&, line: @current_line, col: @current_col}]
+								:COLON2
 							when /\A,/
-								[:COMMA, { str: $&, line: @current_line, col: @current_col }]
+								:COMMA
 							when /\A\{/
-								[:LBRAC, { str: $&, line: @current_line, col: @current_col }]
+								:LBRAC
 							when /\A}/
-								[:RBRAC, { str: $&, line: @current_line, col: @current_col }]
+								:RBRAC
 							when /\A\[/
-								[:LBRACK, { str: $&, line: @current_line, col: @current_col }]
+								:LBRACK
 							when /\A\]/
-								[:RBRACK, { str: $&, line: @current_line, col: @current_col }]
+								:RBRACK
 							when /\A\(/
-								[:LPAR, {str: $&, line: @current_line, col: @current_col }]
+								:LPAR
 							when /\A\)/
-								[:RPAR, {str: $&, line: @current_line, col: @current_col }]
+								:RPAR
 							when /\A=/
-								[:EQ, {str: $&, line: @current_line, col: @current_col }]
+								:EQ
 							when /\A\+/
-								[:PLUS, {str: $&, line: @current_line, col: @current_col }]
+								:PLUS
 							when /\A-/
-								[:HYPHEN, {str: $&, line: @current_line, col: @current_col }]
+								:HYPHEN
 							when /\A\*/
-								[:STAR, {str: $&, line: @current_line, col: @current_col }]
+								:STAR
 							when /\A\//
-								[:SLASH, {str: $&, line: @current_line, col: @current_col }]
+								:SLASH
 							when /\A;/
-								[:SEMICOLON, {str: $&, line: @current_line, col: @current_col }]
+								:SEMICOLON
 							when /\A\./
-								[:DOT, { str: $&, line: @current_line, col: @current_col }]
+								:DOT
 							when /\Aif/
-								[:IF, { str: $&, line: @current_line, col: @current_col }]
+								:IF
 							when /\Aelse/
-								[:ELSE, { str: $&, line: @current_line, col: @current_col }]
+								:ELSE
 							when /\Amodule/
-								[:MODULE, { str: $&, line: @current_line, col: @current_col }]
+								:MODULE
 							when /\A[_a-zA-Z][_a-zA-Z0-9]*/
-								[:IDENTIFIER, {str: $&, line: @current_line, col: @current_col }]
+								:IDENTIFIER
 							when /\A\d+/
 								[:INTEGER, {str: $&, value: $&.to_i, line: @current_line, col: @current_col }]
               else
@@ -81,7 +85,10 @@ module Wtf
                 use_regexp = false
 
                 val
-              end
+							end
+				if ret.is_a?(Symbol)
+					ret = [ret, cur_loc($&)]
+				end
         if use_regexp
           @current_col += $&.length
           @str = $'
