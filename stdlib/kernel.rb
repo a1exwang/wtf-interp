@@ -4,6 +4,7 @@ module Wtf
   module Lang
     module Exception
       class ModuleNotFound < ::Exception; end
+      class FileNotFound < ::Exception; end
     end
     class WtfType
     end
@@ -61,17 +62,23 @@ module Wtf
         puts str
         str
       end
+      defn('gets') do |_env|
+        gets
+      end
       defn('[]') do |_env, obj, index|
         obj[index]
       end
-      defn('each') do |_env, collection, fn|
+      defn('each') do |env, collection, fn|
         collection.each do |item|
-          fn_def_node_call(fn, [item])
+          fn_def_node_call(fn, [item], env.bindings)
         end
         collection
       end
       defn('eval') do |env, str|
-        Wtf.eval(str, env.bindings)
+        Wtf.wtf_eval(str, env.bindings)
+      end
+      defn('require') do |env, file_path|
+        Wtf.wtf_require(file_path, env.bindings)
       end
       defn('to_s') do |env, obj|
         case obj
@@ -112,6 +119,7 @@ module Wtf
       defg('True', Lang::LiteralType.true_val)
       defg('False', Lang::LiteralType.false_val)
       defg('Nil', Lang::LiteralType.nil_val)
+      defg('ARGV', @program_args)
     end
 
   end

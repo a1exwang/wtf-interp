@@ -16,7 +16,6 @@
     - call a function
     - \*math operator is a function
     - list index operator is a function
-    - a.b(c) is equivalent to b(a, c)
   - eval
     
   - conditional expression
@@ -26,10 +25,10 @@
     - reference a variable
 
 - Scope
-    - \*module
+    - module
     - parameter
     - local variable
 
-- 
+- \*Code base test tools 
 
 

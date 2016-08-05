@@ -1,0 +1,7 @@
+Math = module {
+  quad = -> (x) {
+    x * x;
+  };
+}
+
+

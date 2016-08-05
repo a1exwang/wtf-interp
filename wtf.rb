@@ -3,6 +3,15 @@ require_relative 'parser'
 require_relative 'vm'
 require 'optparse'
 
+args = ARGV
+program_args = []
+ARGV.each_with_index do |arg, i|
+  if arg == '-a'
+    args = ARGV[0...i]
+    program_args = ARGV[i..-1]
+  end
+end
+
 options = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: ruby wtf.rb [options]'
@@ -19,7 +28,7 @@ OptionParser.new do |opts|
     options[:file_path] = file
   end
 
-end.parse!
+end.parse!(args)
 
 if options[:m] == :iwtf
   puts 'interactive wtf'
@@ -61,7 +70,14 @@ if options[:stage] == :ast1
   exit
 end
 
+# Create VM
 vm = Wtf::VM.instance
+vm.set_program_args(program_args)
+
+# Load stdlib
+vm.load_stdlib
+
+
 vm.execute(ast)
 vm.execute_fn('main')
 

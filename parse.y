@@ -83,13 +83,9 @@ rule
 		}
 
 	# function call
-	fn_call: identifier LPAR exp_comma_list RPAR {
+	fn_call: exp LPAR exp_comma_list RPAR {
 			result = FnCallNode.new(val[0], val[2], l: val[0].line, c: val[0].col)
 		}
-		| exp DOT identifier LPAR exp_comma_list RPAR {
-            result = FnCallNode.new(val[2], [val[0], *val[4]], l: val[1][:line], c: val[1][:col])
-		}
-
 
     # list def
     list_def: LBRACK exp_comma_list RBRACK {
@@ -97,7 +93,7 @@ rule
         }
     # list ref
     list_ref: exp LBRACK exp_comma_list RBRACK {
-            result = FnCallNode.new(IdNode.new("[]"), [val[0]] + val[2], l: val[1][:line], c: val[1][:col])
+            result = FnCallNode.new(VarRefNode.new(IdNode.new("[]")), [val[0]] + val[2], l: val[1][:line], c: val[1][:col])
         }
 
     # conditional expression

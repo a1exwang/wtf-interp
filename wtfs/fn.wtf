@@ -1,0 +1,6 @@
+main = -> {
+  fn = ->() { -> () { "fn"; }; };
+  puts(fn);
+  puts(fn());
+  puts(fn()());
+}

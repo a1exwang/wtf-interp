@@ -241,16 +241,16 @@ module Wtf
 	end
 
 	class FnCallNode < AstNode
-		attr_reader :identifier, :params
-		def initialize(id, params, l: nil, c: nil)
+		attr_reader :fn, :params
+		def initialize(fn, params, l: nil, c: nil)
 			super(l: l, c: c)
-			@identifier = id
+			@fn = fn
 			@params = params
 		end
     def to_json(*args)
       {
         type: :fn_call,
-        id: @identifier,
+				fn: @fn,
         params: @params,
 				location: location_str
       }.to_json(*args)

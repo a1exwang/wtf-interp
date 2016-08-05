@@ -19,23 +19,15 @@ main = -> {
   };
   fn1(-> (val) { puts(val); });
 
-  # array literal
-  lst = [1, 2, 5, "hello world", -> { }];
-  each(lst, -> (item) { puts(item); });
-  puts(lst[3]);
 
-  # a.b(c, d) is equivalent to b(a, c, d)
-  "second traversal".puts();
-  lst.each(-> (item) { puts(item); });
-
-  # boolean and nil
-  puts([True, False, Nil]);
-
-  if (True) {
-    puts("true");
-  } else {
-    puts("false");
-  };
+  # if statements
+  puts(
+    if (True) {
+      "true";
+    } else {
+      "false";
+    }
+  );
 
   Kernel = module {
     Math = module {

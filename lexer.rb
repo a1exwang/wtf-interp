@@ -1,6 +1,6 @@
 module Wtf
 	class Lexer
-		def initialize(str = nil, filename = nil, line = nil, col = nil)
+		def initialize(str = nil, filename = nil, line = 1, col = 1)
 			load_file(str, filename, line, col)
 		end
 

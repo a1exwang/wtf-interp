@@ -75,7 +75,6 @@ module Wtf
         end
         ancestors.reverse.map { |x| x.location_str }.join("\n")
       end
-
     end
 
     def self.instance
@@ -84,9 +83,15 @@ module Wtf
       else
         @instance = VM.new
         # init_libs is private method
-        @instance.send :init_libs
       end
       @instance ||= VM.new
+    end
+
+    def set_program_args(args)
+      @program_args = args
+    end
+    def load_stdlib
+      init_libs
     end
 
     private
@@ -125,10 +130,10 @@ module Wtf
         params << execute(p, current_binding)
       end
 
-      fn_node = current_binding.wtf_get_var(node.identifier.name)
-      fn_def_node_call(fn_node, params)
+      fn_node = execute(node.fn, current_binding)
+      fn_def_node_call(fn_node, params, current_binding)
     end
-    def fn_def_node_call(node, params)
+    def fn_def_node_call(node, params, _current_bindings)
       ret = nil
       if node.native?
         node.call(params)
@@ -145,13 +150,16 @@ module Wtf
 
     def execute_fn(name, params = [], current_bindings = nil)
       current_bindings ||= @global_bindings
-      fn_call(FnCallNode.new(IdNode.new(name), params), current_bindings)
+      fn_def_node = current_bindings.wtf_get_var(name)
+      fn_def_node_call(fn_def_node, params, current_bindings)
+      #fn_call(FnCallNode.new(IdNode.new(name), params), current_bindings)
     end
 
     def execute(node, current_binding = nil)
       current_binding ||= @global_bindings
       case node
       when IdNode
+        raise "IdNode executed at #{node.inspect}"
         return node
       when LiteralNode
         return node.value
