@@ -1,4 +1,5 @@
 require_relative '../eval'
+require_relative '../api'
 
 module Wtf
   module Lang
@@ -56,31 +57,33 @@ module Wtf
   end
 
   module KernelFnDefs
+    include Wtf::Api
     def def_globals
-      defn('puts') do |env, obj|
+      g = global_bindings
+      defn('puts', g) do |env, obj|
         str = execute_fn('to_s', [obj], env[:node].bindings)
         puts str
         str
       end
-      defn('gets') do |_env|
+      defn('gets', g) do |_env|
         gets
       end
-      defn('[]') do |_env, obj, index|
+      defn('[]', g) do |_env, obj, index|
         obj[index]
       end
-      defn('each') do |env, collection, fn|
+      defn('each', g) do |env, collection, fn|
         collection.each do |item|
           fn_def_node_call(fn, [item], env[:node].bindings)
         end
         collection
       end
-      defn('eval') do |env, str|
+      defn('eval', g) do |env, str|
         Wtf.wtf_eval(str, env[:callers_bindings])
       end
-      defn('require') do |env, file_path|
+      defn('require', g) do |env, file_path|
         Wtf.wtf_require(file_path, env[:callers_bindings])
       end
-      defn('to_s') do |env, obj|
+      defn('to_s', g) do |env, obj|
         node = env[:node]
         case obj
         when AstNode
@@ -100,10 +103,10 @@ module Wtf
           obj.to_s
         end
       end
-      defn('true?') do |env, obj|
+      defn('true?', g) do |env, obj|
         !(obj == Lang::LiteralType.false_val || obj == Lang::LiteralType.nil_val)
       end
-      defn('whats') do |env, obj|
+      defn('whats', g) do |env, obj|
         case obj
         when String
           'String'
@@ -126,15 +129,6 @@ module Wtf
     end
 
     private
-    def defn(name, &block)
-      args = Array.new(block.arity - 1) { |i| IdNode.new("p#{i}") }
-      node = NativeFnDefNode.new(args, lambda do |env, params|
-        raise "wrong number of args in function #{env[:node].name}: #{params.size} given but #{args.size} needed" unless params.size == args.size
-        block.(env, *params)
-      end)
-      node.bind_to_var(name)
-      @global_bindings.wtf_def_var(name, node)
-    end
     def defg(name, val)
       @global_bindings.wtf_def_var(name, val)
     end

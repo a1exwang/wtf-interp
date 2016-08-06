@@ -4,4 +4,4 @@ You are allowed to:
 1. Remove rake task
 2. Add existing rake tasks
 To add existing rake tasks automatically delete this file and reload the project.
---><RakeGroup description="" fullCmd="" taksId="rake"><RakeTask description="racc" fullCmd="racc" taksId="racc" /><RakeTask description="run interp" fullCmd="run" taksId="run" /><RakeTask description="run file" fullCmd="run_file" taksId="run_file" /><RakeTask description="" fullCmd="default" taksId="default" /></RakeGroup></Settings>
+--><RakeGroup description="" fullCmd="" taksId="rake"><RakeTask description="Run integration test" fullCmd="itest" taksId="itest" /><RakeTask description="Generate parser with racc" fullCmd="racc" taksId="racc" /></RakeGroup></Settings>

@@ -163,6 +163,10 @@ module Wtf
 					callers_bindings: callers_bindings
 			}
 			@callable.(env, params)
+    end
+		def set_lexical_parent(lexical_parent)
+			@lexical_parent = lexical_parent
+			@bindings = VM::Bindings.new(self, @lexical_parent)
 		end
 	end
 
