@@ -2,12 +2,15 @@ class Wtf::Parser
 prechigh
     nonassoc LPAR
     right DOT COLON2
-	nonassoc LBRACK
+	left LPAR
+	left LBRAC
+	left LBRACK
 	nonassoc UMINUS
-	left STAR SLASH # * /
-	left PLUS HYPHEN # + -
+	left STAR SLASH         # * /
+	left PLUS HYPHEN        # + -
 	right EQ
 	right FN_BEGIN FN_BEGIN_AND_LPAR
+	right RPAR RBRAC RBRACK
 preclow
 start root
 rule
@@ -26,6 +29,11 @@ rule
 		}
 		| exp { result = [val[0]] }
 		| { result = [] }
+
+	# assignment exp
+	assignment: identifier EQ exp {
+			result = AssignNode.new(val[0], val[2], loc_of(val[0]))
+		}
 
 	# root node
   root: exp { 
@@ -49,11 +57,6 @@ rule
      | mod_def { result = val[0] }
      | mod_scope { result = val[0] }
      | condition { result = val[0] }
-
-	# assignment exp
-	assignment: identifier EQ exp {
-			result = AssignNode.new(val[0], val[2], loc_of(val[0]))
-		}
 
 	# function def
 	fn_def: FN_BEGIN_AND_LPAR fn_arg_list_rpar LBRAC fn_body RBRAC {
