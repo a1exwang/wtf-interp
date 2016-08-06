@@ -9,7 +9,8 @@ module Wtf
       args = Array.new(block.arity - 1) { |i| IdNode.new("p#{i}") }
       node = NativeFnDefNode.new(args, lambda do |env, params|
         unless params.size == args.size
-          raise "wrong number of args in function #{env[:node].name}: \n" +
+          raise Lang::Exception::WrongArgument,
+                "wrong number of args in function #{env[:node].name}: \n" +
                     "#{params.size} given but #{args.size} needed"
         end
         block.(env, *params)

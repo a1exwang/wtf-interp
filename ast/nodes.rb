@@ -3,14 +3,17 @@ require 'json'
 module Wtf
 
 	class AstNode
-		attr_accessor :attrs
-		attr_reader :line, :col
-		def initialize(l: nil, c: nil)
-			@line = l
-			@col = c
+		attr_reader :line, :col, :file, :str,
+								:lexical_parent
+		def initialize(**args)
+			@line = args[:l]
+			@col = args[:c]
+			@file = args[:file]
+			@str = args[:str]
 		end
 
 		def set_lexical_parent(p)
+			@lexical_parent = p
 		end
 
     def to_json(*args)
@@ -21,14 +24,14 @@ module Wtf
     end
 
     def location_str
-      "file, #{line}, #{col}"
+			[@file, @line, @col].compact.join(', ')
     end
 	end
 
 	class IdNode < AstNode
 		attr_reader :name
-		def initialize(name, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(name, **args)
+			super(**args)
 			@name = name
 		end
 
@@ -47,8 +50,8 @@ module Wtf
 
 	class AssignNode < AstNode
 		attr_reader :identifier, :exp
-		def initialize(id, exp, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(id, exp, **args)
+			super(**args)
 			@identifier = id
 			@exp = exp
 			if @exp.is_a?(FnDefNode) || @exp.is_a?(ModNode)
@@ -56,6 +59,7 @@ module Wtf
 			end
     end
     def set_lexical_parent(p)
+      super
 			@exp.set_lexical_parent(p)
 		end
     def to_json(*args)
@@ -70,7 +74,8 @@ module Wtf
 
 	class IfNode < AstNode
 		attr_reader :exp, :true_list, :false_list
-		def initialize(exp, t, f = nil, l: nil, c: l)
+		def initialize(exp, t, f = nil, **args)
+			super(**args)
 			@exp = exp
 			@true_list = t
 			@false_list = f
@@ -84,6 +89,7 @@ module Wtf
 			}.to_json(*args)
 		end
 		def set_lexical_parent(p)
+			super
 			@exp.set_lexical_parent(p)
 			@true_list.each { |it| it.set_lexical_parent(p) }
 			@false_list.each { |it| it.set_lexical_parent(p) }
@@ -92,10 +98,14 @@ module Wtf
 
 	class CodeListNode < AstNode
 		attr_reader :code_list
-		def initialize(code_list, l: nil, c: nil)
+		def initialize(code_list, **args)
+			super(**args)
 			@code_list = code_list
 		end
 		def set_lexical_parent(p)
+			super
+      @line ||= p.entity.line
+			@col ||= p.entity.line
 			code_list.each do |code_list_item|
 				code_list_item.set_lexical_parent(p)
 			end
@@ -111,15 +121,15 @@ module Wtf
 
 	class FnDefNode < AstNode
 		attr_reader :arg_list, :body, :native, :name, :bindings
-		def initialize(arg_list, body, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(arg_list, body, **args)
+			super(**args)
 			@arg_list = arg_list
 			@body = body
 			@native = false
 			@name = '__unbound__'
     end
     def set_lexical_parent(lexical_parent)
-			@lexical_parent = lexical_parent
+			super
 			@bindings = VM::Bindings.new(self, @lexical_parent)
       @body.set_lexical_parent(@bindings)
 		end
@@ -151,8 +161,9 @@ module Wtf
 	end
 
 	class NativeFnDefNode < FnDefNode
-		def initialize(arg_list, callable)
-			super(arg_list, nil)
+		def initialize(arg_list, callable, **args)
+			args[:file] ||= '<native>'
+			super(arg_list, nil, **args)
 			@native = true
 			@callable = callable
 		end
@@ -160,11 +171,13 @@ module Wtf
 		def call(callers_bindings, params)
 			env = {
 					node: self,
-					callers_bindings: callers_bindings
+					callers_bindings: callers_bindings,
+					caller: callers_bindings.entity
 			}
 			@callable.(env, params)
     end
 		def set_lexical_parent(lexical_parent)
+      # NOTE: do not call super
 			@lexical_parent = lexical_parent
 			@bindings = VM::Bindings.new(self, @lexical_parent)
 		end
@@ -172,8 +185,8 @@ module Wtf
 
 	class ModNode < AstNode
 		attr_reader :code_list, :bindings, :name, :module_type
-		def initialize(code_list, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(code_list, **args)
+			super(**args)
 			@code_list = code_list
 		end
 		def to_json(*args)
@@ -183,6 +196,7 @@ module Wtf
 			}.to_json(*args)
 		end
 		def set_lexical_parent(p)
+			super
 			@bindings = VM::Bindings.new(self, p)
 			@code_list.each { |c| c.set_lexical_parent(@bindings) }
 		end
@@ -197,8 +211,8 @@ module Wtf
 
 	class ModRefNode < AstNode
 		attr_reader :id_list
-		def initialize(id_list, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(id_list, **args)
+			super(**args)
 			@id_list = id_list
 		end
 		def to_json(*args)
@@ -211,8 +225,8 @@ module Wtf
 
 	class LiteralNode < AstNode
 		attr_reader :value
-		def initialize(value, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(value, **args)
+			super(**args)
 			@value = value
 		end
 		def to_json
@@ -221,8 +235,8 @@ module Wtf
 	end
 
 	class IntNode < LiteralNode
-		def initialize(val, l: nil, c: nil)
-      super(val, l: l, c: c)
+		def initialize(val, **args)
+      super(val, **args)
 		end
 
 		def to_json(*args)
@@ -235,8 +249,8 @@ module Wtf
 	end
 
 	class StrNode < LiteralNode
-		def initialize(val, l: nil, c: nil)
-			super(val, l: l, c: c)
+		def initialize(val, **args)
+			super(val, **args)
 		end
 
 		def to_json(*args)
@@ -250,8 +264,8 @@ module Wtf
 
 	class FnCallNode < AstNode
 		attr_reader :fn, :params
-		def initialize(fn, params, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(fn, params, **args)
+			super(**args)
 			@fn = fn
 			@params = params
 		end
@@ -264,6 +278,7 @@ module Wtf
       }.to_json(*args)
 		end
 		def set_lexical_parent(p)
+			super
 			@params.each do |param|
 				param.set_lexical_parent(p)
 			end
@@ -272,8 +287,8 @@ module Wtf
 
 	class VarRefNode < AstNode
 		attr_reader :identifier
-		def initialize(id, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(id, **args)
+			super(**args)
 			@identifier = id
 		end
 		def to_json(*args)
@@ -287,8 +302,8 @@ module Wtf
 
 	class LstNode < AstNode
 		attr_reader :list
-		def initialize(list, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(list, **args)
+			super(**args)
 			@list = list
 		end
 		def to_json(*args)
@@ -298,6 +313,7 @@ module Wtf
 			}.to_json(*args)
 		end
 		def set_lexical_parent(p)
+			super
 			@list.each do |l|
 				l.set_lexical_parent(p)
 			end
@@ -306,11 +322,13 @@ module Wtf
 
 	class Op1Node < AstNode
 		attr_reader :op, :p1
-		def initialize(op, p1)
+		def initialize(op, p1, **args)
+			super(**args)
 			@op = op
 			@p1 = p1
 		end
 		def set_lexical_parent(p)
+			super
 			@p1.set_lexical_parent(p)
 		end
     def to_json(*args)
@@ -324,13 +342,14 @@ module Wtf
 	end
 	class Op2Node < AstNode
 		attr_reader :op, :p1, :p2
-		def initialize(op, p1, p2, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(op, p1, p2, **args)
+			super(**args)
 			@op = op
 			@p1 = p1
 			@p2 = p2
 		end
 		def set_lexical_parent(p)
+			super
 			@p1.set_lexical_parent(p)
 			@p2.set_lexical_parent(p)
 		end
@@ -345,14 +364,15 @@ module Wtf
 	end
 	class Op3Node < AstNode
 		attr_reader :op, :p1, :p2, :p3
-		def initialize(op, p1, p2, p3, l: nil, c: nil)
-			super(l: l, c: c)
+		def initialize(op, p1, p2, p3, **args)
+			super(**args)
 			@op = op
 			@p1 = p1
 			@p2 = p2
 			@p3 = p3
 		end
 		def set_lexical_parent(p)
+			super
 			@p1.set_lexical_parent(p)
 			@p2.set_lexical_parent(p)
 			@p3.set_lexical_parent(p)

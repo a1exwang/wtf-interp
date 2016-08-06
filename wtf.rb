@@ -1,6 +1,7 @@
 require_relative 'lexer'
 require_relative 'parser'
 require_relative 'vm'
+require_relative 'stdlib/kernel'
 require 'optparse'
 
 args = ARGV
@@ -28,9 +29,17 @@ OptionParser.new do |opts|
     options[:file_path] = file
   end
 
+  opts.on('-e', '--eval CODE', 'evaluate code') do |code|
+    options[:mode] = :eval
+    options[:code] = code
+  end
+
 end.parse!(args)
 
-if options[:m] == :iwtf
+str = nil
+path = nil
+
+if options[:mode] == :iwtf
   puts 'interactive wtf'
 	line = 1
 	while true
@@ -46,14 +55,18 @@ if options[:m] == :iwtf
 		line += 1
 	end
   exit
+elsif options[:mode] == :eval
+  path = '<eval>'
+  str = options[:code]
+else
+  raise "file not found: #{options[:file_path]}" unless File.exist? options[:file_path]
+
+  f = File.new(options[:file_path])
+  path = options[:file_path]
+  str = f.read
 end
 
-raise "file not found: #{options[:file_path]}" unless File.exist? options[:file_path]
-
-f = File.new(options[:file_path])
-str = f.read
-
-lexer = Wtf::Lexer.new(str, f.path, 1, 1)
+lexer = Wtf::Lexer.new(str, path, 1, 1)
 parser = Wtf::Parser.new
 
 # Parser
@@ -74,10 +87,17 @@ end
 vm = Wtf::VM.instance
 vm.set_program_args(program_args)
 
-# Load stdlib
-vm.load_stdlib
+begin
+  # Load stdlib
+  vm.load_stdlib
 
-
-vm.execute(ast)
-vm.execute_fn('main')
-
+  vm.execute(ast)
+  vm.execute_top_fn
+rescue Wtf::Lang::Exception::WtfError => e
+  puts "#{e.class}\n  #{e.message}"
+  puts "Calling stack:\n"
+  Thread.current[:stack].reverse_each do |fn|
+    caller, callee = fn[:caller], fn[:callee]
+    puts "\tcaller at '#{caller.location_str}', calling function: #{callee.name}, code: \"#{caller.str}\""
+  end
+end

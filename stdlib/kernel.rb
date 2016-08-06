@@ -4,8 +4,11 @@ require_relative '../api'
 module Wtf
   module Lang
     module Exception
-      class ModuleNotFound < ::Exception; end
-      class FileNotFound < ::Exception; end
+      class WtfError < ::Exception; end
+      class ModuleNotFound < WtfError; end
+      class FileNotFound < WtfError; end
+      class VarNotFound < WtfError; end
+      class WrongArgument < WtfError; end
     end
     class WtfType
     end
@@ -61,7 +64,7 @@ module Wtf
     def def_globals
       g = global_bindings
       defn('puts', g) do |env, obj|
-        str = execute_fn('to_s', [obj], env[:node].bindings)
+        str = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
         puts str
         str
       end
@@ -73,7 +76,7 @@ module Wtf
       end
       defn('each', g) do |env, collection, fn|
         collection.each do |item|
-          fn_def_node_call(fn, [item], env[:node].bindings)
+          fn_def_node_call(fn, [item], env[:node].bindings, env[:node])
         end
         collection
       end
@@ -95,7 +98,7 @@ module Wtf
             if result.is_a?(String)
               vals << "\"#{result}\""
             else
-              vals << execute_fn('to_s', [result], node.bindings)
+              vals << execute_fn('to_s', env[:caller], [result], node.bindings)
             end
           end
           "[#{vals.join(', ')}]"
