@@ -56,6 +56,9 @@ module Wtf
           "::#{@name}"
         end
       end
+      def location_str
+        @node.location_str
+      end
     end
   end
 

@@ -41,17 +41,17 @@ module Wtf
         end
         @bindings[name] = val
       end
-      def wtf_get_var(name)
+      def wtf_get_var(name, loc_str)
         return @bindings[name] if @bindings[name]
         begin
-          if @lexical_parent && (v = @lexical_parent.wtf_get_var(name))
+          if @lexical_parent && (v = @lexical_parent.wtf_get_var(name, loc_str))
             return v
           else
             raise Lang::Exception::VarNotFound
           end
         rescue Lang::Exception::VarNotFound
-          err_str = "Definition of '#{name}' not found\n" +
-              "at binding #{self.location_str}"
+          err_str = "\tDefinition of '#{name}' not found\n" +
+              "\tat binding #{loc_str}"
           raise Wtf::Lang::Exception::VarNotFound, err_str unless @bindings.key? name
         end
       end
@@ -130,14 +130,14 @@ module Wtf
       ret = nil
       if node.native?
         # caller's binding
-        Thread.current[:stack] << { caller: caller, callee: node }
+        Thread.current[:stack] << node
         ret = node.call(current_bindings, params)
         Thread.current[:stack].pop
         ret
       else
         # params not used
         node.bind_params(params)
-        Thread.current[:stack] << { caller: caller, callee: node }
+        Thread.current[:stack] << node
         node.body.code_list.each do |code|
           ret = execute(code, node.bindings)
         end
@@ -149,7 +149,7 @@ module Wtf
 
     def execute_fn(name, caller, params = [], current_bindings = nil)
       current_bindings ||= @global_bindings
-      fn_def_node = current_bindings.wtf_get_var(name)
+      fn_def_node = current_bindings.wtf_get_var(name, current_bindings.location_str)
       fn_def_node_call(fn_def_node, params, current_bindings, caller)
       #fn_call(FnCallNode.new(IdNode.new(name), params), current_bindings)
     end
@@ -165,7 +165,7 @@ module Wtf
       when LiteralNode
         return node.value
       when VarRefNode
-        return current_binding.wtf_get_var(node.identifier.name)
+        return current_binding.wtf_get_var(node.identifier.name, node.location_str)
       when AssignNode
         val = execute(node.exp, current_binding)
         current_binding.wtf_def_var(node.identifier.name, val)
@@ -212,9 +212,9 @@ module Wtf
       when IfNode
         val = self.execute(node.exp)
         if self.execute_fn('true?', current_binding.entity, [val], current_binding)
-          self.execute_code_list(node.true_list, current_binding)
+          execute_code_list(node.true_list, current_binding)
         else
-          self.execute_code_list(node.false_list, current_binding)
+          execute_code_list(node.false_list, current_binding)
         end
       when Integer, String, Array, Wtf::Lang::LiteralType, Wtf::Lang::ModuleType
         return node
@@ -247,7 +247,7 @@ module Wtf
       b = current_binding
       mod = nil
       node.id_list.each do |id|
-        mod = b.wtf_get_var(id.name)
+        mod = b.wtf_get_var(id.name, id.location_str)
         # A::B::C, A and B must be modules, C could be a module or a variable
         b = mod.bindings if mod.is_a?(Lang::ModuleType)
       end

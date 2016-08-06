@@ -94,10 +94,10 @@ begin
   vm.execute(ast)
   vm.execute_top_fn
 rescue Wtf::Lang::Exception::WtfError => e
-  puts "#{e.class}\n  #{e.message}"
-  puts "Calling stack:\n"
+  STDERR.puts "#{e.class}\n  #{e.message}"
+  STDERR.puts "Calling stack:\n"
   Thread.current[:stack].reverse_each do |fn|
-    caller, callee = fn[:caller], fn[:callee]
-    puts "\tcaller at '#{caller.location_str}', calling function: #{callee.name}, code: \"#{caller.str}\""
+    caller = fn
+    STDERR.puts "\tcaller at '#{caller.location_str}', calling function: #{caller.name}"
   end
 end

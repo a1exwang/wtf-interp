@@ -36,5 +36,5 @@ main = -> {
   };
 
   puts(Kernel::Math::Zero);
-
+  puts(Kernel::Fuck);
 }
