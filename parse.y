@@ -131,7 +131,7 @@ rule
     end
 
 	def parse(lexer)
-    @lexer = lexer
+        @lexer = lexer
 		do_parse
 	end
 
