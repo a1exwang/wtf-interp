@@ -24,7 +24,7 @@ module Wtf
     end
 
     def location_str
-			[@file, @line, @col].compact.join(', ')
+			[@file, @line, @col].join(', ')
     end
 	end
 
