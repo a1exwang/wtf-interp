@@ -36,9 +36,27 @@ rule
 		}
 
 	# root node
-  root: exp { 
+    root: exp {
 		result = val[0]
 	}
+	stmt: exp { result = val[0] }
+	  | LET pm EQ exp { result = PMNode.new(val[1], val[3], loc_of(val[0])) }
+
+	stmt_list: stmt_list_real { result = val[0] }
+	stmt_list_real: { result = [] }
+		| stmt SEMICOLON stmt_list_real {
+			result = [val[0], *val[2]]
+		}
+
+	pm: LBRAC pm_map RBRAC { result = val[1] }
+	 | LBRAC RBRAC { result = {} }
+	 | LBRACK pm_list RBRACK { result = val[1] }
+	 | LBRACK RBRACK { result = [] }
+	 | identifier { result = val[0] }
+	pm_list: pm { result = [val[0]] }
+	 | pm COMMA pm_list { result = [val[0], *val[2]] }
+	pm_map: identifier COLON pm { result = { val[0] => val[2] } }
+	 | identifier COLON pm COMMA pm_map { result = { val[0] => val[2] }.merge(val[4])  }
 
 	exp: exp PLUS exp { result = Op2Node.new(:plus, val[0], val[2], loc_of(val[0])) }
      | exp HYPHEN exp { result = Op2Node.new(:minus, val[0], val[2], loc_of(val[0])) }
@@ -53,25 +71,19 @@ rule
      | fn_def { result = val[0] }
      | fn_call { result = val[0] }
      | list_def { result = val[0] }
-     | list_ref { result = val[0] }
+     | map_def { result = val[0] }
+     | index_operator { result = val[0] }
      | mod_def { result = val[0] }
      | mod_scope { result = val[0] }
      | condition { result = val[0] }
 
 	# function def
-	fn_def: FN_BEGIN_AND_LPAR fn_arg_list_rpar LBRAC fn_body RBRAC {
-			result = FnDefNode.new(val[1], val[3], loc_of(val[0]))
+	fn_def: FN_BEGIN_AND_LPAR fn_arg_list_rpar fn_body {
+			result = FnDefNode.new(val[1], val[2], loc_of(val[0]))
 		}
-		| FN_BEGIN LBRAC fn_body RBRAC {
-			result = FnDefNode.new([], val[2], loc_of(val[0]))
+		| FN_BEGIN fn_body {
+			result = FnDefNode.new([], val[1], loc_of(val[0]))
 		}
-		| FN_BEGIN_AND_LPAR fn_arg_list_rpar exp {
-		    result = FnDefNode.new(val[1], [val[2]], loc_of(val[0]))
-		}
-		| FN_BEGIN exp {
-		    result = FnDefNode.new([], [val[1]], loc_of(val[0]))
-		}
-
 	fn_arg_list_rpar: fn_arg_list_real RPAR { result = val[0] }
 	fn_arg_list_real_item: identifier { result = val[0] }
 	fn_arg_list_real: fn_arg_list_real_item COMMA fn_arg_list_real { 
@@ -79,11 +91,9 @@ rule
 		}
 		| fn_arg_list_real_item { result = [val[0]] }
 		| { result = []	}
-	fn_body: code_list { result = CodeListNode.new(val[0], file: val[0]&.first.file, str: '', l: val[0].first&.line, c: val[0].first&.col); }
-	code_list: { result = [] }
-		| exp SEMICOLON code_list {
-			result = [val[0], *val[2]]
-		}
+	fn_body: LBRAC stmt_list RBRAC {
+            result = StmtListNode.new(val[1], loc_of(val[0]));
+	    }
 
 	# function call
 	fn_call: exp LPAR exp_comma_list RPAR {
@@ -94,18 +104,29 @@ rule
     list_def: LBRACK exp_comma_list RBRACK {
             result = LstNode.new(val[1], loc_of(val[0]))
         }
-    # list ref
-    list_ref: exp LBRACK exp_comma_list RBRACK {
+
+    # a[b]
+    index_operator: exp LBRACK exp_comma_list RBRACK {
             result = FnCallNode.new(VarRefNode.new(IdNode.new("[]")), [val[0]] + val[2], loc_of(val[1]))
         }
 
+    # map def
+    map_def: LBRAC map_list RBRAC { result = MapNode.new(val[1], loc_of(val[0])) }
+    map_list: map_list_item { result = [val[0]] }
+        | map_list_item COMMA map_list {
+            result = [val[0], *val[2]]
+        }
+    map_list_item: identifier COLON exp {
+            result = { key: val[0], value: val[2] }
+        }
+
     # conditional expression
-    condition: IF exp LBRAC code_list RBRAC ELSE LBRAC code_list RBRAC {
+    condition: IF exp LBRAC stmt_list RBRAC ELSE LBRAC stmt_list RBRAC {
             result = IfNode.new(val[1], val[3], val[7], loc_of(val[0]))
         }
 
     # module definition
-    mod_def: MODULE LBRAC code_list RBRAC {
+    mod_def: MODULE LBRAC stmt_list RBRAC {
             result = ModNode.new(val[2], loc_of(val[0]))
         }
     mod_scope: mod_scope_real {

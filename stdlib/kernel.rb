@@ -9,6 +9,7 @@ module Wtf
       class FileNotFound < WtfError; end
       class VarNotFound < WtfError; end
       class WrongArgument < WtfError; end
+      class NotMatched < WtfError; end
     end
     class WtfType
     end

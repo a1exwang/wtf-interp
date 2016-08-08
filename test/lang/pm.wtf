@@ -1,0 +1,7 @@
+main = -> {
+  let {a: a} = {a: 1};
+  puts(a);
+
+  puts(b);
+  puts(d);
+}

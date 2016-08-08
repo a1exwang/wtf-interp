@@ -21,10 +21,12 @@ module Wtf
 					return [false, '$end']
 				end
         use_regexp = true
+				is_new_line = false
 				ret = case @str
 							when /\A(#.*)?(\n|\r|\r\n)/
 								@current_line += 1
-								@current_col = -$&.length + 1
+								@current_col = 1
+								is_new_line = true
 								nil
 							when /\A[ \t]+/
 								nil
@@ -62,12 +64,16 @@ module Wtf
 								:SEMICOLON
 							when /\A\./
 								:DOT
+							when /\A:/
+								:COLON
 							when /\Aif/
 								:IF
 							when /\Aelse/
 								:ELSE
 							when /\Amodule/
 								:MODULE
+							when /\Alet/
+								:LET
 							when /\A[_a-zA-Z][_a-zA-Z0-9]*/
 								:IDENTIFIER
 							when /\A\d+/
@@ -90,7 +96,7 @@ module Wtf
 					ret = [ret, cur_loc($&)]
 				end
         if use_regexp
-          @current_col += $&.length
+          @current_col += $&.length unless is_new_line
           @str = $'
         end
 			end until ret

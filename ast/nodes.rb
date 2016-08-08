@@ -96,24 +96,24 @@ module Wtf
 		end
 	end
 
-	class CodeListNode < AstNode
-		attr_reader :code_list
-		def initialize(code_list, **args)
+	class StmtListNode < AstNode
+		attr_reader :stmt_list
+		def initialize(stmt_list, **args)
 			super(**args)
-			@code_list = code_list
+			@stmt_list = stmt_list
 		end
 		def set_lexical_parent(p)
 			super
       @line ||= p.entity.line
 			@col ||= p.entity.line
-			code_list.each do |code_list_item|
+			stmt_list.each do |code_list_item|
 				code_list_item.set_lexical_parent(p)
 			end
 		end
     def to_json(*args)
       {
-        type: :code_list,
-        list: @code_list,
+        type: :stmt_list,
+        list: @stmt_list,
 				location: location_str
       }.to_json(*args)
     end
@@ -184,21 +184,21 @@ module Wtf
 	end
 
 	class ModNode < AstNode
-		attr_reader :code_list, :bindings, :name, :module_type
-		def initialize(code_list, **args)
+		attr_reader :stmt_list, :bindings, :name, :module_type
+		def initialize(stmt_list, **args)
 			super(**args)
-			@code_list = code_list
+			@stmt_list = stmt_list
 		end
 		def to_json(*args)
 			{
 					type: :module,
-					code_list: code_list
+					stmt_list: @stmt_list
 			}.to_json(*args)
 		end
 		def set_lexical_parent(p)
 			super
 			@bindings = VM::Bindings.new(self, p)
-			@code_list.each { |c| c.set_lexical_parent(@bindings) }
+			@stmt_list.each { |c| c.set_lexical_parent(@bindings) }
 		end
 		def bind_to_var(name)
 			@name = name unless @name
@@ -317,6 +317,49 @@ module Wtf
 			@list.each do |l|
 				l.set_lexical_parent(p)
 			end
+		end
+	end
+	class MapNode < AstNode
+		attr_reader :list
+		def initialize(item_list, **args)
+			super(**args)
+			@list = item_list
+		end
+		def to_json(*args)
+			{
+					type: :map,
+					list: @list,
+					location: location_str
+			}.to_json(*args)
+		end
+		def set_lexical_parent(p)
+			super
+			@list.each do |item|
+				key, value = item[:key], item[:value]
+				key.set_lexical_parent(p)
+				value.set_lexical_parent(p)
+			end
+		end
+	end
+
+	class PMNode < AstNode
+		attr_reader :left, :right
+		def initialize(left, right, **args)
+			super(**args)
+			@left = left
+			@right = right
+		end
+		def set_lexical_parent(p)
+			super
+			@right.set_lexical_parent(p)
+		end
+		def to_json(*args)
+			{
+					type: :pm,
+					left: @left,
+					right: @right,
+					location: location_str
+			}.to_json(*args)
 		end
 	end
 

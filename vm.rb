@@ -138,7 +138,7 @@ module Wtf
         # params not used
         node.bind_params(params)
         Thread.current[:stack] << node
-        node.body.code_list.each do |code|
+        node.body.stmt_list.each do |code|
           ret = execute(code, node.bindings)
         end
         node.unbind_params
@@ -176,6 +176,14 @@ module Wtf
           values << execute(item, current_binding)
         end
         return values
+      when MapNode
+        values = {}
+        node.list.each do |item|
+          key_node = item[:key]
+          value_node = item[:value]
+          values[key_node.name] = execute(value_node, current_binding)
+        end
+        values
       when ModNode
         return module_def(node, current_binding)
       when ModRefNode
@@ -212,10 +220,12 @@ module Wtf
       when IfNode
         val = self.execute(node.exp)
         if self.execute_fn('true?', current_binding.entity, [val], current_binding)
-          execute_code_list(node.true_list, current_binding)
+          execute_stmt_list(node.true_list, current_binding)
         else
-          execute_code_list(node.false_list, current_binding)
+          execute_stmt_list(node.false_list, current_binding)
         end
+      when PMNode
+        execute_pm_node(node, current_binding)
       when Integer, String, Array, Wtf::Lang::LiteralType, Wtf::Lang::ModuleType
         return node
       else
@@ -226,11 +236,11 @@ module Wtf
     private
     def module_def(node, current_binding)
       mod = Wtf::Lang::ModuleType.new(node, current_binding, node.bindings)
-      execute_code_list(node.code_list, node.bindings)
+      execute_stmt_list(node.stmt_list, node.bindings)
       mod
     end
-    def execute_code_list(code_list, bindings)
-      code_list.each do |c|
+    def execute_stmt_list(stmt_list, bindings)
+      stmt_list.each do |c|
         execute(c, bindings)
       end
     end
@@ -243,6 +253,85 @@ module Wtf
       fn_node = execute(node.fn, current_binding)
       fn_def_node_call(fn_node, params, current_binding, node)
     end
+
+    def execute_pm_node(node, current_binding)
+      case node.left
+      when Array
+        execute_pm_list(node.left, node.right, current_binding)
+      when Hash
+        execute_pm_map(node.left, node.right, current_binding)
+      when IdNode
+        current_binding.wtf_def_var(node.left.name, execute(node.right))
+      when String, Integer
+        right_val = execute(node.right)
+        if node.left == right_val
+          true
+        else
+          raise Wtf::Lang::Exception::NotMatched, "#{node.left} != #{right_val}"
+        end
+      else
+        raise Wtf::Lang::Exception::NotMatched, "left unknown type: #{node.left}"
+      end
+    end
+
+    def execute_pm_map(left_map, right, current_binding)
+      if right.is_a?(Hash)
+        if left_map.size != right.size
+          raise Wtf::Lang::Exception::NotMatched, "map size not matched: #{left_map.size} and #{right.size}"
+        end
+        left_map.each do |key, val|
+          case val
+          when Array
+            execute_pm_list(val, right[key], current_binding)
+          when Hash
+            execute_pm_map(val, right[key], current_binding)
+          when IdNode
+            current_binding.wtf_def_var(val.name, execute(right[key]))
+          when String, Integer
+            right_val = execute(right[key])
+            if val == right_val
+              true
+            else
+              raise Wtf::Lang::Exception::NotMatched, "#{val} != #{right_val}"
+            end
+          else
+            raise Wtf::Lang::Exception::NotMatched, "left unknown type: #{val}"
+          end
+        end
+      else
+        raise Wtf::Lang::Exception::NotMatched, "left is map, but right is #{right}"
+      end
+    end
+
+    def execute_pm_list(left_list, right, current_binding)
+      if right.is_a?(Array)
+        if left_list.size != right.size
+          raise Wtf::Lang::Exception::NotMatched, "list size not matched: #{left_list.size} and #{right.size}"
+        end
+        left_list.size.times do |i|
+          case left_list[i]
+          when Array
+            execute_pm_list(left_list[i], right[i], current_binding)
+          when Hash
+            execute_pm_map(left_list[i], right[i], current_binding)
+          when IdNode
+            current_binding.wtf_def_var(left_list[i].name, execute(right[i]))
+          when String, Integer
+            right_val = execute(right[i])
+            if left_list[i] == right_val
+              true
+            else
+              raise Wtf::Lang::Exception::NotMatched, "#{left_list[i]} != #{right_val}"
+            end
+          else
+            raise Wtf::Lang::Exception::NotMatched, "left unknown type: #{left_list[i]}"
+          end
+        end
+      else
+        raise Wtf::Lang::Exception::NotMatched, "left is list, but right is #{right}"
+      end
+    end
+
     def scope_ref(node, current_binding)
       b = current_binding
       mod = nil
