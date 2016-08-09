@@ -1,11 +1,11 @@
 HTTPServer = module {
-  bind = -> (ip, port) {
+  bind = -> (ip, port, cb) {
 
+  };
+  on_request = -> (cb) {
   };
 
 
-
-
-
-
+  close = -> (server) {
+  };
 }

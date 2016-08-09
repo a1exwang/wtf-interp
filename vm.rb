@@ -126,7 +126,7 @@ module Wtf
       execute_fn('main', Wtf::VM.instance.top_fn)
     end
 
-    def fn_def_node_call(node, params, current_bindings, caller)
+    def fn_def_node_call(node, params, current_bindings, _caller)
       ret = nil
       if node.native?
         # caller's binding
@@ -226,11 +226,15 @@ module Wtf
         end
       when PMNode
         execute_pm_node(node, current_binding)
-      when Integer, String, Array, Wtf::Lang::LiteralType, Wtf::Lang::ModuleType
+      when Integer, String, Array, Hash, Wtf::Lang::LiteralType, Wtf::Lang::ModuleType
         return node
       else
         raise "unknown node type: '#{node.class}', value: '#{node}'"
       end
+    end
+
+    def raise_rt_err(err, location, msg)
+      raise err, "at #{location}\n#{msg}"
     end
 
     private
@@ -255,80 +259,79 @@ module Wtf
     end
 
     def execute_pm_node(node, current_binding)
-      case node.left
-      when Array
-        execute_pm_list(node.left, node.right, current_binding)
-      when Hash
-        execute_pm_map(node.left, node.right, current_binding)
+      execute_pm(node.left, node.right, current_binding)
+    end
+    def execute_pm(left, right, current_binding)
+      case left
+      when PMLstNode
+        execute_pm_list(left, right, current_binding)
+      when PMMapNode
+        execute_pm_map(left, right, current_binding)
       when IdNode
-        current_binding.wtf_def_var(node.left.name, execute(node.right))
+        current_binding.wtf_def_var(left.name, execute(right))
       when String, Integer
-        right_val = execute(node.right)
-        if node.left == right_val
+        right_val = execute(right)
+        if left == right_val
           true
         else
-          raise Wtf::Lang::Exception::NotMatched, "#{node.left} != #{right_val}"
+          raise_rt_err(Lang::Exception::NotMatched, right.location_str, "#{left} != #{right_val}")
         end
       else
-        raise Wtf::Lang::Exception::NotMatched, "left unknown type: #{node.left}"
+        raise_rt_err(Lang::Exception::NotMatched, right.location_str, "unknown left (#{left}) type")
       end
     end
 
-    def execute_pm_map(left_map, right, current_binding)
-      if right.is_a?(Hash)
-        if left_map.size != right.size
-          raise Wtf::Lang::Exception::NotMatched, "map size not matched: #{left_map.size} and #{right.size}"
+    # left_map is a PMMapNode
+    def execute_pm_map(left, right, current_binding)
+      if right.is_a?(MapNode)
+        if left.list.size != right.list.size
+          raise_rt_err(
+              Lang::Exception::NotMatched,
+              left.location_str,
+              "map size not matched: #{left.size} and #{right.list.size}"
+          )
         end
-        left_map.each do |key, val|
-          case val
-          when Array
-            execute_pm_list(val, right[key], current_binding)
-          when Hash
-            execute_pm_map(val, right[key], current_binding)
-          when IdNode
-            current_binding.wtf_def_var(val.name, execute(right[key]))
-          when String, Integer
-            right_val = execute(right[key])
-            if val == right_val
-              true
-            else
-              raise Wtf::Lang::Exception::NotMatched, "#{val} != #{right_val}"
-            end
+        left.list.each do |item|
+          key, val = item[:key], item[:value]
+          val_node  = right.get_by_name(key.name)
+          if val_node
+            execute_pm(val, val_node[:value], current_binding)
           else
-            raise Wtf::Lang::Exception::NotMatched, "left unknown type: #{val}"
+            raise_rt_err(
+                Lang::Exception::NotMatched,
+                left.location_str,
+                "key '#{key.name}' in left not found in right"
+            )
           end
         end
       else
-        raise Wtf::Lang::Exception::NotMatched, "left is map, but right is #{right}"
+        raise_rt_err(
+            Lang::Exception::NotMatched,
+            left.location_str,
+            "left is map, but right is #{right}"
+        )
       end
     end
 
-    def execute_pm_list(left_list, right, current_binding)
-      if right.is_a?(Array)
-        if left_list.size != right.size
-          raise Wtf::Lang::Exception::NotMatched, "list size not matched: #{left_list.size} and #{right.size}"
+    # +left+ is a PMLstNode
+    def execute_pm_list(left, right, current_binding)
+      if right.is_a?(LstNode)
+        if left.list.size != right.list.size
+          raise_rt_err(
+              Lang::Exception::NotMatched,
+              left.location_str,
+              "list size not matched: #{left.size} and #{right.list.size}"
+          )
         end
-        left_list.size.times do |i|
-          case left_list[i]
-          when Array
-            execute_pm_list(left_list[i], right[i], current_binding)
-          when Hash
-            execute_pm_map(left_list[i], right[i], current_binding)
-          when IdNode
-            current_binding.wtf_def_var(left_list[i].name, execute(right[i]))
-          when String, Integer
-            right_val = execute(right[i])
-            if left_list[i] == right_val
-              true
-            else
-              raise Wtf::Lang::Exception::NotMatched, "#{left_list[i]} != #{right_val}"
-            end
-          else
-            raise Wtf::Lang::Exception::NotMatched, "left unknown type: #{left_list[i]}"
-          end
+        left.list.size.times do |i|
+          execute_pm(left.list[i], right.list[i], current_binding)
         end
       else
-        raise Wtf::Lang::Exception::NotMatched, "left is list, but right is #{right}"
+        raise_rt_err(
+            Lang::Exception::NotMatched,
+            left.location_str,
+            "left is list, but right is #{right}"
+        )
       end
     end
 

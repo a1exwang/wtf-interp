@@ -340,6 +340,9 @@ module Wtf
 				value.set_lexical_parent(p)
 			end
 		end
+		def get_by_name(name)
+			@list.find { |item| item[:key].name == name }
+		end
 	end
 
 	class PMNode < AstNode
@@ -358,6 +361,37 @@ module Wtf
 					type: :pm,
 					left: @left,
 					right: @right,
+					location: location_str
+			}.to_json(*args)
+		end
+	end
+	class PMLstNode < AstNode
+		attr_reader :list
+		def initialize(list, **args)
+			super(**args)
+			@list = list
+    end
+    def to_json(*args)
+			{
+					type: :pm_list,
+					list: @list,
+					location: location_str
+			}.to_json(*args)
+		end
+	end
+	class PMMapNode < AstNode
+		attr_reader :list
+		def initialize(list, **args)
+			super(**args)
+			@list = list
+    end
+    def get_by_name(name)
+			@list.find { |node| node[:key].name = name }
+		end
+		def to_json(*args)
+			{
+					type: :pm_list,
+					list: @list,
 					location: location_str
 			}.to_json(*args)
 		end

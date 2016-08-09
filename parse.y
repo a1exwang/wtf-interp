@@ -42,21 +42,22 @@ rule
 	stmt: exp { result = val[0] }
 	  | LET pm EQ exp { result = PMNode.new(val[1], val[3], loc_of(val[0])) }
 
+    # statement list,
 	stmt_list: stmt_list_real { result = val[0] }
 	stmt_list_real: { result = [] }
 		| stmt SEMICOLON stmt_list_real {
 			result = [val[0], *val[2]]
 		}
 
-	pm: LBRAC pm_map RBRAC { result = val[1] }
-	 | LBRAC RBRAC { result = {} }
-	 | LBRACK pm_list RBRACK { result = val[1] }
-	 | LBRACK RBRACK { result = [] }
+	pm: LBRAC pm_map RBRAC { result = PMMapNode.new(val[1], loc_of(val[0])) }
+	 | LBRACK pm_list RBRACK { result = PMLstNode.new(val[1], loc_of(val[0])) }
 	 | identifier { result = val[0] }
-	pm_list: pm { result = [val[0]] }
+	pm_list: { result = [] }
+	 | pm { result = [val[0]] }
 	 | pm COMMA pm_list { result = [val[0], *val[2]] }
-	pm_map: identifier COLON pm { result = { val[0] => val[2] } }
-	 | identifier COLON pm COMMA pm_map { result = { val[0] => val[2] }.merge(val[4])  }
+	pm_map: { result = {} }
+	 | identifier COLON pm { result = [{key: val[0], value: val[2]}] }
+	 | identifier COLON pm COMMA pm_map {result = [{key: val[0], value: val[2]}, *val[4]]}
 
 	exp: exp PLUS exp { result = Op2Node.new(:plus, val[0], val[2], loc_of(val[0])) }
      | exp HYPHEN exp { result = Op2Node.new(:minus, val[0], val[2], loc_of(val[0])) }
@@ -87,7 +88,7 @@ rule
 	fn_arg_list_rpar: fn_arg_list_real RPAR { result = val[0] }
 	fn_arg_list_real_item: identifier { result = val[0] }
 	fn_arg_list_real: fn_arg_list_real_item COMMA fn_arg_list_real { 
-			result = [val[0], *val[2]] 
+			result = [val[0], *val[2]]
 		}
 		| fn_arg_list_real_item { result = [val[0]] }
 		| { result = []	}
@@ -112,7 +113,8 @@ rule
 
     # map def
     map_def: LBRAC map_list RBRAC { result = MapNode.new(val[1], loc_of(val[0])) }
-    map_list: map_list_item { result = [val[0]] }
+    map_list: { result = [] }
+        | map_list_item { result = [val[0]] }
         | map_list_item COMMA map_list {
             result = [val[0], *val[2]]
         }
