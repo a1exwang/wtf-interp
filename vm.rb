@@ -280,8 +280,7 @@ module Wtf
         raise_rt_err(Lang::Exception::NotMatched, right.location_str, "unknown left (#{left}) type")
       end
     end
-
-    # left_map is a PMMapNode
+    # +left+ is a PMMapNode
     def execute_pm_map(left, right, current_binding)
       if right.is_a?(MapNode)
         if left.list.size != right.list.size
@@ -312,7 +311,6 @@ module Wtf
         )
       end
     end
-
     # +left+ is a PMLstNode
     def execute_pm_list(left, right, current_binding)
       if right.is_a?(LstNode)

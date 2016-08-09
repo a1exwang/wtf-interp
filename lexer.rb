@@ -66,13 +66,13 @@ module Wtf
 								:DOT
 							when /\A:/
 								:COLON
-							when /\Aif/
+							when /\Aif\b/
 								:IF
-							when /\Aelse/
+							when /\Aelse\b/
 								:ELSE
-							when /\Amodule/
+							when /\Amodule\b/
 								:MODULE
-							when /\Alet/
+							when /\Alet\b/
 								:LET
 							when /\A[_a-zA-Z][_a-zA-Z0-9]*/
 								:IDENTIFIER

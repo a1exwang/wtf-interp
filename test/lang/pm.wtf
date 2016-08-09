@@ -1,15 +1,16 @@
 main = -> {
   let {a: a} = {a: 1};
   let {b: [b, c]} = {b: [2, 3]};
+  puts(a);
+  puts(b);
+  puts(c);
 
   let d = 4;
   let {} = {};
   let [] = [];
   let [{e: e}] = [{e: 5}];
-
-  puts(a);
-  puts(b);
-  puts(c);
   puts(d);
   puts(e);
+
+  let [a, b, _]
 }
