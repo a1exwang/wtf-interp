@@ -4,5 +4,8 @@
     <inspection_tool class="RubyClassModuleNamingConvention" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="m_minLength" value="2" />
     </inspection_tool>
+    <inspection_tool class="RubyConstantNamingConvention" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="m_regex" value="[A-Z][_A-Za-z0-9]*" />
+    </inspection_tool>
   </profile>
 </component>

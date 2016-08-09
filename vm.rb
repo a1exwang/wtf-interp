@@ -314,7 +314,7 @@ module Wtf
     # +left+ is a PMLstNode
     def execute_pm_list(left, right, current_binding)
       if right.is_a?(LstNode)
-        if left.list.size != right.list.size
+        if left.list.size > right.list.size
           raise_rt_err(
               Lang::Exception::NotMatched,
               left.location_str,
@@ -322,7 +322,26 @@ module Wtf
           )
         end
         left.list.size.times do |i|
-          execute_pm(left.list[i], right.list[i], current_binding)
+          left_node = left.list[i]
+          if left_node.is_a?(PMModIdNode)
+            case left_node.mod
+            when PMModIdNode::ModRestMatch
+              # rest match must be the last argument
+              if i == left.list.size - 1
+                vals = []
+                right.list[i..-1].each do |right_item|
+                  vals << execute(right_item)
+                end
+                execute_pm(left_node.identifier, vals, current_binding)
+              else
+                raise_rt_err(Lang::Exception::SemanticsError, left_node.location_str, "rest match must be the last item(#{left.list.size-1}), but at #{i}")
+              end
+            else
+              raise "PMModIdNode mod type: #{left.list[i].mod}"
+            end
+          else
+            execute_pm(left.list[i], right.list[i], current_binding)
+          end
         end
       else
         raise_rt_err(

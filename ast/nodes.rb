@@ -396,6 +396,24 @@ module Wtf
 			}.to_json(*args)
 		end
 	end
+	class PMModIdNode < AstNode
+		ModRestMatch = :rest
+		attr_reader :identifier, :mod
+		def initialize(id, mod, **args)
+			super(**args)
+			@identifier = id
+			@mod = mod
+		end
+		def to_json(*args)
+			{
+					type: :pm_mod_id,
+					id: @identifier,
+					mod: @mod,
+					location: location_str
+			}.to_json(*args)
+		end
+
+	end
 
 	class Op1Node < AstNode
 		attr_reader :op, :p1

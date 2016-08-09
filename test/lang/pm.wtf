@@ -12,5 +12,7 @@ main = -> {
   puts(d);
   puts(e);
 
-  let [a, b, _]
+  let [f, g, _] = [1, 2, 3];
+  let [h, i, *j] = [1, 2, 3, 4, 5];
+  puts(j);
 }

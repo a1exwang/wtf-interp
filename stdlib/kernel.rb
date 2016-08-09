@@ -10,6 +10,7 @@ module Wtf
       class VarNotFound < WtfError; end
       class WrongArgument < WtfError; end
       class NotMatched < WtfError; end
+      class SemanticsError < WtfError; end
     end
     class WtfType
     end

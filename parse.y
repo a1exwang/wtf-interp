@@ -52,6 +52,7 @@ rule
 	pm: LBRAC pm_map RBRAC { result = PMMapNode.new(val[1], loc_of(val[0])) }
 	 | LBRACK pm_list RBRACK { result = PMLstNode.new(val[1], loc_of(val[0])) }
 	 | identifier { result = val[0] }
+	 | STAR identifier { result = PMModIdNode.new(val[1], PMModIdNode::ModRestMatch, loc_of(val[0])) }
 	pm_list: { result = [] }
 	 | pm { result = [val[0]] }
 	 | pm COMMA pm_list { result = [val[0], *val[2]] }
