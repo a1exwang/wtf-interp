@@ -73,8 +73,13 @@ module Wtf
         puts str
         str
       end
+      defn('print', g) do |env, obj|
+        str = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
+        print str
+        str
+      end
       defn('gets', g) do |_env|
-        gets
+        STDIN.gets
       end
       defn('[]', g) do |_env, obj, index|
         obj[index]
@@ -84,6 +89,11 @@ module Wtf
           fn_def_node_call(fn, [item], env[:node].bindings, env[:node])
         end
         collection
+      end
+      defn('loop', g) do |env, fn|
+        loop do
+          fn_def_node_call(fn, [], env[:node].bindings, env[:node])
+        end
       end
       defn('eval', g) do |env, str|
         Wtf.wtf_eval(str, env[:callers_bindings])
