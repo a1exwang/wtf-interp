@@ -1,0 +1,2 @@
+rescue
+Wtf::Lang::Exception::NotMatched

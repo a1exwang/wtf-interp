@@ -78,6 +78,7 @@ rule
      | mod_def { result = val[0] }
      | mod_scope { result = val[0] }
      | condition { result = val[0] }
+     | exception { result = val[0] }
 
 	# function def
 	fn_def: FN_BEGIN_AND_LPAR fn_arg_list_rpar fn_body {
@@ -140,6 +141,11 @@ rule
         }
         | identifier COLON2 identifier {
             result = [val[0], val[2]]
+        }
+
+    # exception rescue
+    exception: EXCEPTION_BEGIN LBRAC stmt_list RBRAC EXCEPTION_RESCUE pm LBRAC stmt_list RBRAC {
+            result = ExceptNode.new(val[2], val[5], val[7], loc_of(val[0]))
         }
 
 ---- header

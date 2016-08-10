@@ -119,6 +119,7 @@ module Wtf
 
     def init_thread(thread)
       thread[:stack] = []
+      thread[:exception_handler_stack] = []
     end
 
     public
@@ -192,6 +193,13 @@ module Wtf
         return node
       when FnCallNode
         return fn_cal_node_call(node, current_binding)
+      when ExceptNode
+        begin
+          execute_stmt_list(node.stmt_list, node.bindings)
+        rescue Lang::Exception::WtfError => e
+          execute_pm(node.pm, e.to_wtf_map, node.bindings)
+          execute_stmt_list(node.rescue_list, node.bindings)
+        end
       when Op1Node
         case node.op
         when :plus
@@ -237,12 +245,20 @@ module Wtf
       raise err, "at #{location}\n#{msg}"
     end
 
+    def defm(name, current_binding)
+      node = ModNode.new([])
+      mod = module_def(node, current_binding)
+      current_binding.wtf_def_var(name, mod)
+      mod
+    end
+
     private
     def module_def(node, current_binding)
       mod = Wtf::Lang::ModuleType.new(node, current_binding, node.bindings)
       execute_stmt_list(node.stmt_list, node.bindings)
       mod
     end
+
     def execute_stmt_list(stmt_list, bindings)
       stmt_list.each do |c|
         execute(c, bindings)
@@ -287,7 +303,7 @@ module Wtf
           raise_rt_err(
               Lang::Exception::NotMatched,
               left.location_str,
-              "map size not matched: #{left.size} and #{right.list.size}"
+              "map size not matched: #{left.list.size} and #{right.list.size}"
           )
         end
         left.list.each do |item|
@@ -295,6 +311,27 @@ module Wtf
           val_node  = right.get_by_name(key.name)
           if val_node
             execute_pm(val, val_node[:value], current_binding)
+          else
+            raise_rt_err(
+                Lang::Exception::NotMatched,
+                left.location_str,
+                "key '#{key.name}' in left not found in right"
+            )
+          end
+        end
+      elsif right.is_a?(Hash)
+        if left.list.size != right.size
+          raise_rt_err(
+              Lang::Exception::NotMatched,
+              left.location_str,
+              "map size not matched: #{left.list.size} and #{right.size}"
+          )
+        end
+        left.list.each do |item|
+          key, val = item[:key], item[:value]
+          val_node  = right[key.name]
+          if val_node
+            execute_pm(val, val_node, current_binding)
           else
             raise_rt_err(
                 Lang::Exception::NotMatched,
@@ -318,7 +355,7 @@ module Wtf
           raise_rt_err(
               Lang::Exception::NotMatched,
               left.location_str,
-              "list size not matched: #{left.size} and #{right.list.size}"
+              "list size not matched: #{left.list.size} and #{right.list.size}"
           )
         end
         left.list.size.times do |i|
@@ -341,6 +378,38 @@ module Wtf
             end
           else
             execute_pm(left.list[i], right.list[i], current_binding)
+          end
+        end
+      elsif right.is_a?(Array)
+        if left.list.size > right.size
+          raise_rt_err(
+              Lang::Exception::NotMatched,
+              left.location_str,
+              "list size not matched: #{left.list.size} and #{right.size}"
+          )
+        end
+        left.list.size.times do |i|
+          left_node = left.list[i]
+          if left_node.is_a?(PMModIdNode)
+            case left_node.mod
+            when PMModIdNode::ModRestMatch
+              # rest match must be the last argument
+              if i == left.list.size - 1
+                vals = []
+                right[i..-1].each do |right_item|
+                  vals << execute(right_item)
+                end
+                execute_pm(left_node.identifier, vals, current_binding)
+              else
+                raise_rt_err(Lang::Exception::SemanticsError,
+                             left_node.location_str,
+                             "rest match must be the last item(#{left.list.size-1}), but at #{i}")
+              end
+            else
+              raise "PMModIdNode mod type: #{left.list[i].mod}"
+            end
+          else
+            execute_pm(left.list[i], right[i], current_binding)
           end
         end
       else

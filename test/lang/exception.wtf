@@ -1,0 +1,8 @@
+main = -> {
+  secure {
+    let [a, b, c, d] = [1, 2, 3];
+  } rescue {type: type, message: message} {
+    puts("rescue");
+    puts(to_s(type));
+  };
+}

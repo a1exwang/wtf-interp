@@ -74,6 +74,10 @@ module Wtf
 								:MODULE
 							when /\Alet\b/
 								:LET
+              when /\Asecure\b/
+                :EXCEPTION_BEGIN
+							when /\Arescue\b/
+								:EXCEPTION_RESCUE
 							when /\A[_a-zA-Z][_a-zA-Z0-9]*/
 								:IDENTIFIER
 							when /\A\d+/

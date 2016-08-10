@@ -412,7 +412,29 @@ module Wtf
 					location: location_str
 			}.to_json(*args)
 		end
+  end
 
+	class ExceptNode < AstNode
+		attr_reader :stmt_list, :pm, :rescue_list, :bindings
+		def initialize(stmt_list, pm, rescue_list, **args)
+			super(**args)
+			@stmt_list = stmt_list
+			@pm = pm
+			@rescue_list = rescue_list
+		end
+		def set_lexical_parent(p)
+			super
+			@bindings = VM::Bindings.new(self, p)
+			@lexical_parent = @bindings
+		end
+		def to_json(*args)
+			{
+        type: :exception,
+				stmt_list: @stmt_list,
+				pm: @pm,
+				rescue_list: @rescue_list
+			}.to_json(*args)
+		end
 	end
 
 	class Op1Node < AstNode

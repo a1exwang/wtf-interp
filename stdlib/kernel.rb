@@ -4,7 +4,11 @@ require_relative '../api'
 module Wtf
   module Lang
     module Exception
-      class WtfError < ::Exception; end
+      class WtfError < ::Exception
+        def to_wtf_map
+          { 'type' => self.class.to_s, 'message' => self.message }
+        end
+      end
       class ModuleNotFound < WtfError; end
       class FileNotFound < WtfError; end
       class VarNotFound < WtfError; end
