@@ -55,6 +55,15 @@ module Wtf
           raise Wtf::Lang::Exception::VarNotFound, err_str unless @bindings.key? name
         end
       end
+      def wtf_find_var(name)
+        scopes = name.split('::')
+        b = self
+        scopes.each do |scope_name|
+          b = b.wtf_get_var(scope_name, '')
+        end
+        b
+      end
+
       def wtf_undef_all
         @bindings = {}
       end
@@ -252,13 +261,13 @@ module Wtf
       mod
     end
 
-    private
     def module_def(node, current_binding)
       mod = Wtf::Lang::ModuleType.new(node, current_binding, node.bindings)
       execute_stmt_list(node.stmt_list, node.bindings)
       mod
     end
 
+    private
     def execute_stmt_list(stmt_list, bindings)
       stmt_list.each do |c|
         execute(c, bindings)

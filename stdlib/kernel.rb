@@ -1,5 +1,6 @@
 require_relative '../eval'
 require_relative '../api'
+require_relative './api'
 
 module Wtf
   module Lang
@@ -148,9 +149,15 @@ module Wtf
       end
 
       def_global_vars
+      def_stdlib
     end
 
     private
+    def def_stdlib
+      require_relative './rb/math'
+
+      Wtf::Api::WtfModuleBaseHelper.instance.define_all(self)
+    end
     def defg(name, val)
       @global_bindings.wtf_def_var(name, val)
     end
