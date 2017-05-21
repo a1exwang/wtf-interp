@@ -29,19 +29,30 @@ module Wtf
       class WrongArgument < WtfError; end
       class NotMatched < WtfError; end
       class SemanticsError < WtfError; end
+      class EOFError < WtfError; end
     end
     class WtfType
     end
-    class LiteralType < WtfType
+    class SimpleType < WtfType
+      attr_reader :val
+      def initialize(val)
+        @val = val
+      end
+      def wtf_to_s(env)
+        StringType.new(@val.to_s)
+      end
+    end
+    class LiteralType < SimpleType
       attr_reader :name
       def self.true_val
-        @true_val ||= LiteralType.new('True')
+        @true_val ||= BoolType.new(true)
       end
+
       def self.false_val
-        @false_val ||= LiteralType.new('False')
+        @false_val ||= BoolType.new(false)
       end
       def self.nil_val
-        @nil_val ||= LiteralType.new('Nil')
+        @nil_val ||= NilType.new
       end
 
       def wtf_to_s(env)
@@ -51,6 +62,16 @@ module Wtf
       private
       def initialize(name)
         @name = name
+      end
+    end
+    class BoolType < LiteralType
+      def initialize(val)
+        super(val ? 'True' : 'False')
+      end
+    end
+    class NilType < LiteralType
+      def initialize
+        super('Nil')
       end
     end
     class ModuleType < LiteralType
@@ -77,15 +98,6 @@ module Wtf
       end
       def location_str
         @node.location_str
-      end
-    end
-    class SimpleType < WtfType
-      attr_reader :val
-      def initialize(val)
-        @val = val
-      end
-      def wtf_to_s(env)
-        StringType.new(@val.to_s)
       end
     end
     class ListType < SimpleType
@@ -195,6 +207,102 @@ module Wtf
         StringType.new(@val)
       end
     end
+    class FunctionType < WtfType
+      attr_reader :node
+      def wtf_call
+        puts 123
+      end
+      def wtf_to_s(_env)
+        Wtf::Lang::StringType.new('Function@%016x' % [self.object_id])
+      end
+      def initialize(node)
+        @node = node
+      end
+    end
+
+    class MetaType < WtfType
+      attr_reader :full_name, :cls
+      def wtf_to_s(env)
+        Wtf::Lang::StringType.new("<Type: #{self.full_name}>")
+      end
+    end
+
+    class ListMetaType < MetaType
+      include Wtf::Api::WtfModuleBase
+      outer_name 'Type'
+      module_name 'List'
+      defn 'sublist' do |_env, str, start, len|
+        Wtf::Lang::ListType.new(str.val[start.val...(start.val + len.val)])
+      end
+      defn 'is_mine' do |_env, obj|
+        Wtf::Lang::BoolType.new(obj.is_a?(ListType))
+      end
+      def initialize
+        @cls = ListType
+      end
+    end
+    class MapMetaType < MetaType
+      include Wtf::Api::WtfModuleBase
+      outer_name 'Type'
+      module_name 'Map'
+      defn 'is_mine' do |_env, obj|
+        Wtf::Lang::BoolType.new(obj.is_a?(MapType))
+      end
+      def initialize
+        @cls = MapType
+      end
+    end
+    class IntMetaType < MetaType
+      include Wtf::Api::WtfModuleBase
+      outer_name 'Type'
+      module_name 'Int'
+      defn 'is_mine' do |env, obj|
+        Wtf::Lang::BoolType.new(obj.is_a?(IntType))
+      end
+      def initialize
+        @cls = IntType
+      end
+    end
+    class FloatMetaType < MetaType
+      include Wtf::Api::WtfModuleBase
+      outer_name 'Type'
+      module_name 'Float'
+      defn 'is_mine' do |env, obj|
+        Wtf::Lang::BoolType.new(obj.is_a?(FloatType))
+      end
+
+      def initialize
+        @cls = FloatType
+      end
+
+    end
+    class StringMetaType < MetaType
+      include Wtf::Api::WtfModuleBase
+      outer_name 'Type'
+      module_name 'String'
+      defn 'substr' do |_env, str, start, len|
+        Wtf::Lang::StringType.new(str.val[start.val...(start.val + len.val)])
+      end
+      defn 'is_mine' do |_env, obj|
+        Wtf::Lang::BoolType.new(obj.is_a?(StringType))
+      end
+
+      def initialize
+        @cls = StringType
+      end
+    end
+    class FunctionMetaType < MetaType
+      include Wtf::Api::WtfModuleBase
+      outer_name 'Type'
+      module_name 'Function'
+      defn 'is_mine' do |_env, obj|
+        Wtf::Lang::BoolType.new(obj.is_a?(FunctionType))
+      end
+
+      def initialize
+        @cls = FunctionType
+      end
+    end
   end
 
   module KernelFnDefs
@@ -212,20 +320,20 @@ module Wtf
         str_obj
       end
       defn('gets', g) do |_env|
-        StringType.new(STDIN.gets)
+        Wtf::Lang::StringType.new(STDIN.gets)
       end
       defn('[]', g) do |env, obj, index|
         obj.wtf_index_op(env, index)
       end
       defn('each', g) do |env, collection, fn|
         collection.each do |item|
-          fn_def_node_call(fn, [item], env[:node].bindings, env[:node])
+          fn_obj_call(fn, [item], env[:node].bindings, env[:node])
         end
         collection
       end
       defn('loop', g) do |env, fn|
         loop do
-          fn_def_node_call(fn, [], env[:node].bindings, env[:node])
+          fn_obj_call(fn, [], env[:node].bindings, env[:node])
         end
       end
       defn('eval', g) do |env, str_obj|
@@ -248,17 +356,17 @@ module Wtf
       defn('whats', g) do |env, obj|
         str =
             case obj
-              when String
+              when Wtf::Lang::StringType
                 'String'
-              when Integer
-                'Integer'
-              when Array
+              when Wtf::Lang::IntType
+                'Int'
+              when Wtf::Lang::ListType
                 'List'
               when Lang::LiteralType.true_val, Lang::LiteralType.false_val
-                'Boolean'
+                'Bool'
               when Lang::LiteralType.nil_val
                 'Nil'
-              when Wtf::FnDefNode
+              when Wtf::Lang::FunctionType
                 'Function'
               else
                 raise 'Unknown value type'
@@ -273,7 +381,9 @@ module Wtf
     private
     def def_stdlib
       require_relative './rb/math'
+      require_relative './rb/type'
 
+      # This will define all wtf modules written in Ruby
       Wtf::Api::WtfModuleBaseHelper.instance.define_all(self)
     end
     def defg(name, val)

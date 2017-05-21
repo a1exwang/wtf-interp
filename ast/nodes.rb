@@ -179,7 +179,10 @@ module Wtf
 					caller: callers_bindings.entity
 			}
 			@callable.(env, params)
-    end
+		end
+		def direct_call(env, params)
+			@callable.(env, params)
+		end
 		def set_lexical_parent(lexical_parent)
       # NOTE: do not call super
 			@lexical_parent = lexical_parent

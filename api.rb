@@ -16,15 +16,15 @@ module Wtf
         block.(env, *params)
       end)
       node.set_lexical_parent(bindings)
-      node
+      Wtf::Lang::FunctionType.new(node)
     end
 
     ##
     # defn = define named function
     def defn(name, bindings, &block)
-      node = defu(bindings, &block)
-      node.bind_to_var(name)
-      bindings.wtf_def_var(name, node)
+      fn = defu(bindings, &block)
+      fn.node.bind_to_var(name)
+      bindings.wtf_def_var(name, fn)
     end
 
     ##

@@ -11,7 +11,7 @@
   # Strings
   b = "abc";
   
-  # list literal
+  # Lists
   lst = [1, 2, 5, "hello world"];
   each(lst, -> (item) { puts(item); });
   puts(lst[3]);
@@ -22,12 +22,17 @@
           [3, 5, 7]];
   puts(to_s(lst1[0][0]));
 
-  # boolean and nil
+  # Booleans and Nil
   puts([True, False, Nil]);
   
   # Hash Map
   map = {a: 2 + 3};
   puts(map["a"]);
+  
+  # Functions
+  puts(Type::is_a(1, Type::Int));
+  puts(Type::is_a(1, Type::Float));
+  puts(Type::is_a(Type::is_a, Type::Function));
 ```
 
 - Operators
@@ -62,6 +67,7 @@
   };
   
   fn1(fn);
+  
 ```
 
 - Modules
@@ -118,7 +124,7 @@
 
 ### TODOs
 - Data Types
-  - float
+  - \[DONE] float
 
 - syntax
   - regex
@@ -129,8 +135,8 @@
 - stdlib
   - math
   - io
-  - string
-  - Expose meta objects of data types in stdlib
+  - \[DONE] string
+  - \[DONE] Expose meta objects of data types in stdlib
   
 - bugs
   - \[DONE] exceptions var redefinition bug

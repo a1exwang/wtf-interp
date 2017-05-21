@@ -36,7 +36,8 @@ rule
 		}
 
 	# root node
-    root: exp {
+    root: {}
+    | exp {
 		result = val[0]
 	}
 	stmt: exp { result = val[0] }

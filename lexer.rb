@@ -17,7 +17,7 @@ module Wtf
 
 		def next_token
 			begin
-				if @str.size == 0
+				if @str.nil? or @str.size == 0
 					return [false, '$end']
 				end
         use_regexp = true

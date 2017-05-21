@@ -38,7 +38,6 @@ module Wtf
         if @bindings.key? name
           err_str = "Duplicate definition of \"#{name}\" error\n" +
                     "at binding #{self.location_str}"
-          raise
           raise Lang::Exception::VarRedefinition.new(err_str, self.location_str)
         end
         @bindings[name] = val
@@ -49,21 +48,24 @@ module Wtf
           if @lexical_parent && (v = @lexical_parent.wtf_get_var(name, loc_str))
             return v
           else
-            raise Lang::Exception::VarNotFound
+            raise Lang::Exception::VarNotFound.new("Variable '#{name}' not found", loc_str)
           end
         rescue Lang::Exception::VarNotFound
           err_str = "\tDefinition of '#{name}' not found\n" +
               "\tat binding #{loc_str}"
-          raise Wtf::Lang::Exception::VarNotFound, err_str unless @bindings.key? name
+          raise Wtf::Lang::Exception::VarNotFound.new(err_str, loc_str) unless @bindings.key? name
         end
       end
-      def wtf_find_var(name)
+      def wtf_find_var(name, loc_str)
         scopes = name.split('::')
         b = self
         scopes.each do |scope_name|
-          b = b.wtf_get_var(scope_name, '')
+          b = b.wtf_get_var(scope_name, loc_str)
         end
         b
+      end
+      def wtf_local_var_names
+        Wtf::Lang::ListType.new(@bindings.keys.map { |x| Wtf::Lang::StringType.new(x) })
       end
 
       def wtf_undef_all
@@ -153,8 +155,9 @@ module Wtf
       Wtf.wtf_load_file(io, file_path, current_bindings)
     end
 
-    def fn_def_node_call(node, params, current_bindings, _caller)
+    def fn_obj_call(fn, params, current_bindings, _caller)
       ret = nil
+      node = fn.node
       if node.native?
         # caller's binding
         Thread.current[:stack] << node
@@ -177,7 +180,7 @@ module Wtf
     def execute_fn(name, caller, params = [], current_bindings = nil)
       current_bindings ||= @global_bindings
       fn_def_node = current_bindings.wtf_get_var(name, current_bindings.location_str)
-      fn_def_node_call(fn_def_node, params, current_bindings, caller)
+      fn_obj_call(fn_def_node, params, current_bindings, caller)
       #fn_call(FnCallNode.new(IdNode.new(name), params), current_bindings)
     end
 
@@ -188,7 +191,6 @@ module Wtf
       case node
       when IdNode
         raise "IdNode executed at #{node.inspect}"
-        #return node
       when LiteralNode
         return node.wtf_value
       when VarRefNode
@@ -216,7 +218,7 @@ module Wtf
       when ModRefNode
         return scope_ref(node, current_binding)
       when FnDefNode
-        return node
+        return Wtf::Lang::FunctionType.new(node)
       when FnCallNode
         return fn_cal_node_call(node, current_binding)
       when ExceptNode
@@ -303,8 +305,8 @@ module Wtf
         params << execute(p, current_binding)
       end
 
-      fn_node = execute(node.fn, current_binding)
-      fn_def_node_call(fn_node, params, current_binding, node)
+      fn = execute(node.fn, current_binding)
+      fn_obj_call(fn, params, current_binding, node)
     end
 
     def execute_pm_node(node, current_binding)
@@ -339,32 +341,22 @@ module Wtf
               "map size not matched: #{left.list.size} and #{right.list.size}"
           )
         end
-        left.list.each do |item|
-          key, val = item[:key], item[:value]
-          val_node  = right.get_by_name(key.name)
-          if val_node
-            execute_pm(val, val_node[:value], current_binding)
-          else
-            raise_rt_err(
-                Lang::Exception::NotMatched,
-                left.location_str,
-                "key '#{key.name}' in left not found in right"
-            )
-          end
-        end
-        STDERR.puts('**warning: pm_map right executed')
-        Wtf::Lang::MapType.new({})
-      elsif right.is_a?(Wtf::Lang::MapType)
-        if left.list.size != right.size
+        right_obj = execute(right, current_binding)
+      else
+        right_obj = right
+      end
+
+      if right_obj.is_a?(Wtf::Lang::MapType)
+        if left.list.size != right_obj.size
           raise_rt_err(
               Lang::Exception::NotMatched,
               left.location_str,
-              "map size not matched: #{left.list.size} and #{right.size}"
+              "map size not matched: #{left.list.size} and #{right_obj.size}"
           )
         end
         left.list.each do |item|
           key, val = item[:key], item[:value]
-          val_node  = right.get_item(key.name)
+          val_node  = right_obj.get_item(key.name)
           if val_node
             execute_pm(val, val_node, current_binding)
           else
@@ -375,7 +367,7 @@ module Wtf
             )
           end
         end
-        right
+        right_obj
       else
         raise_rt_err(
             Lang::Exception::NotMatched,
@@ -394,36 +386,17 @@ module Wtf
               "list size not matched: #{left.list.size} and #{right.list.size}"
           )
         end
-        left.list.size.times do |i|
-          left_node = left.list[i]
-          if left_node.is_a?(PMModIdNode)
-            case left_node.mod
-            when PMModIdNode::ModRestMatch
-              # rest match must be the last argument
-              if i == left.list.size - 1
-                vals = []
-                right.list[i..-1].each do |right_item|
-                  vals << execute(right_item)
-                end
-                execute_pm(left_node.identifier, Wtf::Lang::ListType.new(vals), current_binding)
-              else
-                raise_rt_err(Lang::Exception::SemanticsError, left_node.location_str, "rest match must be the last item(#{left.list.size-1}), but at #{i}")
-              end
-            else
-              raise "PMModIdNode mod type: #{left.list[i].mod}"
-            end
-          else
-            execute_pm(left.list[i], right.list[i], current_binding)
-          end
-        end
-        STDERR.puts('**warning: pm_list right executed')
-        Wtf::Lang::ListType.new([])
-      elsif right.is_a?(Wtf::Lang::ListType)
-        if left.list.size > right.val.size
+        right_obj = execute(right, current_binding)
+      else
+        right_obj = right
+      end
+
+      if right_obj.is_a?(Wtf::Lang::ListType)
+        if left.list.size > right_obj.val.size
           raise_rt_err(
               Lang::Exception::NotMatched,
               left.location_str,
-              "list size not matched: #{left.list.size} and #{right.val.size}"
+              "list size not matched: #{left.list.size} and #{right_obj.val.size}"
           )
         end
         left.list.size.times do |i|
@@ -434,7 +407,7 @@ module Wtf
               # rest match must be the last argument
               if i == left.list.size - 1
                 vals = []
-                right.val[i..-1].each do |right_item|
+                right_obj.val[i..-1].each do |right_item|
                   vals << execute(right_item)
                 end
                 execute_pm(left_node.identifier, Wtf::Lang::ListType.new(vals), current_binding)
@@ -447,10 +420,10 @@ module Wtf
               raise "PMModIdNode mod type: #{left.list[i].mod}"
             end
           else
-            execute_pm(left.list[i], right.val[i], current_binding)
+            execute_pm(left.list[i], right_obj.val[i], current_binding)
           end
         end
-        right
+        right_obj
       else
         raise_rt_err(
             Lang::Exception::NotMatched,
