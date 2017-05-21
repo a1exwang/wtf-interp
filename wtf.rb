@@ -66,32 +66,13 @@ else
   str = f.read
 end
 
-lexer = Wtf::Lexer.new(str, path, 1, 1)
-parser = Wtf::Parser.new
-
-# Parser
-ast = parser.parse(lexer)
-if options[:stage] == :ast
-  puts JSON.pretty_generate(JSON.parse(ast.to_json))
-  exit
-end
-
-# AST traversing 1
-ast.set_lexical_parent(Wtf::VM.instance.global_bindings)
-if options[:stage] == :ast1
-  puts JSON.pretty_generate(JSON.parse(ast.to_json))
-  exit
-end
-
 # Create VM
 vm = Wtf::VM.instance
 vm.set_program_args(program_args)
-
+# Load stdlib
 begin
-  # Load stdlib
   vm.load_stdlib
-
-  vm.execute(ast)
+  vm.exec_file(path, str, options)
   vm.execute_top_fn
 rescue Wtf::Lang::Exception::WtfError => e
   STDERR.puts "#{e.class}\n  #{e.message}"

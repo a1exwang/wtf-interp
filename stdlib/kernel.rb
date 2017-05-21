@@ -126,6 +126,28 @@ module Wtf
           obj.to_s
         end
       end
+      defn('wtf', g) do |env, obj|
+        node = env[:node]
+        case obj
+          when AstNode
+            JSON.pretty_generate(JSON.parse(obj.to_json))
+          when Array
+            vals = []
+            obj.each do |val|
+              result = execute(val)
+              if result.is_a?(String)
+                vals << "\"#{result}\""
+              else
+                vals << execute_fn('to_s', env[:caller], [result], node.bindings)
+              end
+            end
+            "[#{vals.join(', ')}]"
+          when String
+            '"' + obj.to_s + '"'
+          else
+            obj.to_s
+        end
+      end
       defn('true?', g) do |env, obj|
         !(obj == Lang::LiteralType.false_val || obj == Lang::LiteralType.nil_val)
       end

@@ -3,6 +3,7 @@ require_relative 'stdlib/kernel'
 
 module Wtf
   class VM
+    STDLIB_ROOT = 'stdlib/wtf'
     attr_reader :global_bindings
     class Bindings
       attr_reader :entity, :lexical_parent
@@ -99,6 +100,38 @@ module Wtf
     end
     def load_stdlib
       init_libs
+      load_stdlib_files
+    end
+    def load_stdlib_files
+      Dir.entries(VM::STDLIB_ROOT).each do |filename|
+        if filename =~ /\.wtf$/
+          path = File.join(VM::STDLIB_ROOT, filename)
+          open(path, 'r') do |f|
+            exec_file(path, f.read)
+          end
+
+        end
+      end
+    end
+
+    def exec_file(path, code, options = {})
+      lexer = Wtf::Lexer.new(code, path, 1, 1)
+      parser = Wtf::Parser.new
+
+      # Parser
+      ast = parser.parse(lexer)
+      if options[:stage] == :ast
+        puts JSON.pretty_generate(JSON.parse(ast.to_json))
+        exit
+      end
+
+      # AST traversing 1
+      ast.set_lexical_parent(Wtf::VM.instance.global_bindings)
+      if options[:stage] == :ast1
+        puts JSON.pretty_generate(JSON.parse(ast.to_json))
+        exit
+      end
+      self.execute(ast)
     end
 
     def top_fn

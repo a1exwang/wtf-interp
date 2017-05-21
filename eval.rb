@@ -1,7 +1,7 @@
 require_relative 'parser'
 require_relative 'stdlib/kernel'
 module Wtf
-  STDLIB_DIR = File.join(File.dirname(__FILE__), 'wtfs', 'stdlib')
+  STDLIB_DIR = File.join(File.dirname(__FILE__), 'stdlib', 'wtf')
   def self.wtf_eval(str, current_bindings)
     lexer = Wtf::Lexer.new(str, 'eval', 1, 1)
     parser = Wtf::Parser.new

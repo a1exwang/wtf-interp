@@ -1,7 +1,5 @@
-Math = module {
+SimpleMath = module {
   quad = -> (x) {
     x * x;
   };
 }
-
-
