@@ -1,4 +1,4 @@
 main = -> {
-  require("math");
-  puts(Math::quad(2));
+  require("simple_math");
+  puts(SimpleMath::quad(2));
 }
