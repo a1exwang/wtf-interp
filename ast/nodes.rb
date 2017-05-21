@@ -228,10 +228,11 @@ module Wtf
   end
 
 	class LiteralNode < AstNode
-		attr_reader :value
+		attr_reader :value, :wtf_value
 		def initialize(value, **args)
 			super(**args)
 			@value = value
+			@wtf_value = nil
 		end
 		def to_json
 			raise NotImplementedError
@@ -241,6 +242,7 @@ module Wtf
 	class IntNode < LiteralNode
 		def initialize(val, **args)
       super(val, **args)
+			@wtf_value = Wtf::Lang::IntType.new(val)
 		end
 
 		def to_json(*args)
@@ -255,6 +257,7 @@ module Wtf
 	class StrNode < LiteralNode
 		def initialize(val, **args)
 			super(val, **args)
+			@wtf_value = Wtf::Lang::StringType.new(val)
 		end
 
 		def to_json(*args)

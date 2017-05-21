@@ -122,7 +122,7 @@
 
 - syntax
   - regex
-  - "is" operator
+  - "is" operator, binary comparison operator
   - Don't need "main" function
   - NO operator overriding
 
@@ -133,7 +133,7 @@
   - Expose meta objects of data types in stdlib
   
 - bugs
-  - exceptions var redefinition bug
+  - \[DONE] exceptions var redefinition bug
   
 ### Language Design 
 

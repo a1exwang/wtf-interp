@@ -13,13 +13,19 @@ module Wtf
           @wtf_location = location
         end
         def to_wtf_map
-          { 'type' => self.class.to_s, 'message' => self.message }
+          Wtf::Lang::MapType.new(
+              {
+                  'type' => Wtf::Lang::StringType.new(self.class.to_s),
+                  'message' => Wtf::Lang::StringType.new(self.message)
+              }
+          )
         end
       end
       class ModuleNotFound < WtfError; end
       class FileNotFound < WtfError; end
       class VarNotFound < WtfError; end
       class VarRedefinition < WtfError; end
+      class TypeError < WtfError; end
       class WrongArgument < WtfError; end
       class NotMatched < WtfError; end
       class SemanticsError < WtfError; end
@@ -38,8 +44,8 @@ module Wtf
         @nil_val ||= LiteralType.new('Nil')
       end
 
-      def to_s
-        @name
+      def wtf_to_s(env)
+        StringType.new(@name)
       end
 
       private
@@ -47,7 +53,6 @@ module Wtf
         @name = name
       end
     end
-
     class ModuleType < LiteralType
       attr_reader :parent, :bindings, :name
       def initialize(node, lexical_parent, bindings)
@@ -74,6 +79,122 @@ module Wtf
         @node.location_str
       end
     end
+    class SimpleType < WtfType
+      attr_reader :val
+      def initialize(val)
+        @val = val
+      end
+      def wtf_to_s(env)
+        StringType.new(@val.to_s)
+      end
+    end
+    class ListType < SimpleType
+      def each(&block)
+        self.val.each(&block)
+      end
+      def wtf_to_s(env)
+        vals = val.map do |val|
+          result = Wtf::VM.instance.execute(val)
+          if result.is_a?(StringType)
+            StringType.new("\"#{result.val}\"")
+          else
+            Wtf::VM.instance.execute_fn('to_s', env[:caller], [result], env[:node].bindings)
+          end
+        end
+        StringType.new("[#{vals.map{ |x| x.val }.join(', ')}]")
+      end
+      def wtf_index_op(env, index)
+        if index.is_a?(IntType)
+          @val[index.val]
+        else
+          raise Wtf::Lang::TypeError
+        end
+      end
+    end
+    class MapType < WtfType
+      attr_reader :hash
+      def initialize(h)
+        @hash = h
+      end
+      def size
+        @hash.size
+      end
+      def get_item(str)
+        @hash[str]
+      end
+      def wtf_index_op(env, index)
+        if index.is_a?(StringType)
+          @hash[index.val]
+        else
+          raise
+        end
+      end
+    end
+    class NumericType < SimpleType
+      def wtf_plus(env, other)
+        if other.is_a?(NumericType)
+          r = @val + other.val
+          if r.is_a?(Integer)
+            IntType.new(r)
+          else
+            raise
+          end
+        else
+          raise
+        end
+      end
+      def wtf_minus(env, other)
+        if other.is_a?(NumericType)
+          r = @val - other.val
+          if r.is_a?(Integer)
+            IntType.new(r)
+          else
+            raise
+          end
+        else
+          raise
+        end
+      end
+      def wtf_mul(env, other)
+        if other.is_a?(NumericType)
+          r = @val * other.val
+          if r.is_a?(Integer)
+            IntType.new(r)
+          else
+            raise
+          end
+        else
+          raise
+        end
+      end
+      def wtf_div(env, other)
+        if other.is_a?(NumericType)
+          r = @val / other.val
+          if r.is_a?(Integer)
+            IntType.new(r)
+          else
+            raise
+          end
+        else
+          raise
+        end
+      end
+      def wtf_uminus(env)
+        Wtf::Lang::IntType.new(-@val)
+      end
+    end
+    class IntType < NumericType
+    end
+    class FloatType < NumericType
+    end
+    class StringType < SimpleType
+      def wtf_plus(env, other)
+        StringType.new(@val + other.wtf_to_s(env).val)
+      end
+      def wtf_to_s(env)
+        StringType.new(@val)
+      end
+    end
   end
 
   module KernelFnDefs
@@ -81,20 +202,20 @@ module Wtf
     def def_globals
       g = global_bindings
       defn('puts', g) do |env, obj|
-        str = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
-        puts str
-        str
+        str_obj = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
+        puts str_obj.val
+        str_obj
       end
       defn('print', g) do |env, obj|
-        str = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
-        print str
-        str
+        str_obj = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
+        print str_obj.val
+        str_obj
       end
       defn('gets', g) do |_env|
-        STDIN.gets
+        StringType.new(STDIN.gets)
       end
-      defn('[]', g) do |_env, obj, index|
-        obj[index]
+      defn('[]', g) do |env, obj, index|
+        obj.wtf_index_op(env, index)
       end
       defn('each', g) do |env, collection, fn|
         collection.each do |item|
@@ -107,74 +228,42 @@ module Wtf
           fn_def_node_call(fn, [], env[:node].bindings, env[:node])
         end
       end
-      defn('eval', g) do |env, str|
-        Wtf.wtf_eval(str, env[:callers_bindings])
+      defn('eval', g) do |env, str_obj|
+        Wtf.wtf_eval(str_obj.val, env[:callers_bindings])
       end
-      defn('require', g) do |env, file_path|
-        Wtf.wtf_require(file_path, env[:callers_bindings])
+      defn('require', g) do |env, str_obj|
+        Wtf.wtf_require(str_obj.val, env[:callers_bindings])
       end
       defn('to_s', g) do |env, obj|
-        node = env[:node]
         case obj
         when AstNode
-          JSON.pretty_generate(JSON.parse(obj.to_json))
-        when Array
-          vals = []
-          obj.each do |val|
-            result = execute(val)
-            if result.is_a?(String)
-              vals << "\"#{result}\""
-            else
-              vals << execute_fn('to_s', env[:caller], [result], node.bindings)
-            end
-          end
-          "[#{vals.join(', ')}]"
+          StringType.new(JSON.pretty_generate(JSON.parse(obj.to_json)))
         else
-          obj.to_s
-        end
-      end
-      defn('wtf', g) do |env, obj|
-        node = env[:node]
-        case obj
-          when AstNode
-            JSON.pretty_generate(JSON.parse(obj.to_json))
-          when Array
-            vals = []
-            obj.each do |val|
-              result = execute(val)
-              if result.is_a?(String)
-                vals << "\"#{result}\""
-              else
-                vals << execute_fn('to_s', env[:caller], [result], node.bindings)
-              end
-            end
-            "[#{vals.join(', ')}]"
-          when String
-            '"' + obj.to_s + '"'
-          else
-            obj.to_s
+          obj.wtf_to_s(env)
         end
       end
       defn('true?', g) do |env, obj|
-        !(obj == Lang::LiteralType.false_val || obj == Lang::LiteralType.nil_val)
+        Lang::LiteralType.new(!(obj == Lang::LiteralType.false_val || obj == Lang::LiteralType.nil_val))
       end
       defn('whats', g) do |env, obj|
-        case obj
-        when String
-          'String'
-        when Integer
-          'Integer'
-        when Array
-          'List'
-        when Lang::LiteralType.true_val, Lang::LiteralType.false_val
-          'Boolean'
-        when Lang::LiteralType.nil_val
-          'Nil'
-        when Wtf::FnDefNode
-          'Function'
-        else
-          raise 'Unknown value type'
-        end
+        str =
+            case obj
+              when String
+                'String'
+              when Integer
+                'Integer'
+              when Array
+                'List'
+              when Lang::LiteralType.true_val, Lang::LiteralType.false_val
+                'Boolean'
+              when Lang::LiteralType.nil_val
+                'Nil'
+              when Wtf::FnDefNode
+                'Function'
+              else
+                raise 'Unknown value type'
+            end
+        Lang::StringType.new(str)
       end
 
       def_global_vars

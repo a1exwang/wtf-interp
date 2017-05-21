@@ -97,7 +97,8 @@ module Wtf
     end
 
     def set_program_args(args)
-      @program_args = args
+      my_argv = args.map { |x| Wtf::Lang::StringType.new(x) }
+      @program_args = Wtf::Lang::ListType.new(my_argv)
     end
     def load_stdlib
       init_libs
@@ -189,7 +190,7 @@ module Wtf
         raise "IdNode executed at #{node.inspect}"
         #return node
       when LiteralNode
-        return node.value
+        return node.wtf_value
       when VarRefNode
         return current_binding.wtf_get_var(node.identifier.name, node.location_str)
       when AssignNode
@@ -201,7 +202,7 @@ module Wtf
         node.list.each do |item|
           values << execute(item, current_binding)
         end
-        return values
+        Wtf::Lang::ListType.new(values)
       when MapNode
         values = {}
         node.list.each do |item|
@@ -209,7 +210,7 @@ module Wtf
           value_node = item[:value]
           values[key_node.name] = execute(value_node, current_binding)
         end
-        values
+        Wtf::Lang::MapType.new(values)
       when ModNode
         return module_def(node, current_binding)
       when ModRefNode
@@ -229,10 +230,11 @@ module Wtf
         end
       when Op1Node
         case node.op
-        when :plus
-          return self.execute(node.p1, current_binding)
-        when :minus
-          return -self.execute(node.p1, current_binding)
+          when :plus
+            return self.execute(node.p1, current_binding)
+          when :minus
+            # TODO: construct an env object
+            return self.execute(node.p1, current_binding).wtf_uminus({})
         else
           raise 'unknown op1: ' + node.op
         end
@@ -240,15 +242,16 @@ module Wtf
         p1 = self.execute(node.p1, current_binding)
         p2 = self.execute(node.p2, current_binding)
 
+        # TODO: construct a env object
         case node.op
         when :plus
-          return p1 + p2
+          return p1.wtf_plus({}, p2)
         when :minus
-          return p1 - p2
+          return p1.wtf_minus({}, p2)
         when :mul
-          return p1 * p2
+          return p1.wtf_mul({}, p2)
         when :div
-          return p1 / p2
+          return p2.wtf_div({}, p2)
         else
           raise 'unknown operator: ' + node.op
         end
@@ -261,7 +264,7 @@ module Wtf
         end
       when PMNode
         execute_pm_node(node, current_binding)
-      when Integer, String, Array, Hash, Wtf::Lang::LiteralType, Wtf::Lang::ModuleType
+      when Wtf::Lang::LiteralType, Wtf::Lang::SimpleType
         return node
       else
         raise "unknown node type: '#{node.class}', value: '#{node}'"
@@ -315,10 +318,10 @@ module Wtf
         execute_pm_map(left, right, current_binding)
       when IdNode
         current_binding.wtf_def_var(left.name, execute(right))
-      when String, Integer
+      when Wtf::Lang::StringType, Wtf::Lang::IntType
         right_val = execute(right)
         if left == right_val
-          true
+          Wtf::Lang::LiteralType.true_val
         else
           raise_rt_err(Lang::Exception::NotMatched, right.location_str, "#{left} != #{right_val}")
         end
@@ -349,7 +352,9 @@ module Wtf
             )
           end
         end
-      elsif right.is_a?(Hash)
+        STDERR.puts('**warning: pm_map right executed')
+        Wtf::Lang::MapType.new({})
+      elsif right.is_a?(Wtf::Lang::MapType)
         if left.list.size != right.size
           raise_rt_err(
               Lang::Exception::NotMatched,
@@ -359,7 +364,7 @@ module Wtf
         end
         left.list.each do |item|
           key, val = item[:key], item[:value]
-          val_node  = right[key.name]
+          val_node  = right.get_item(key.name)
           if val_node
             execute_pm(val, val_node, current_binding)
           else
@@ -370,6 +375,7 @@ module Wtf
             )
           end
         end
+        right
       else
         raise_rt_err(
             Lang::Exception::NotMatched,
@@ -399,7 +405,7 @@ module Wtf
                 right.list[i..-1].each do |right_item|
                   vals << execute(right_item)
                 end
-                execute_pm(left_node.identifier, vals, current_binding)
+                execute_pm(left_node.identifier, Wtf::Lang::ListType.new(vals), current_binding)
               else
                 raise_rt_err(Lang::Exception::SemanticsError, left_node.location_str, "rest match must be the last item(#{left.list.size-1}), but at #{i}")
               end
@@ -410,12 +416,14 @@ module Wtf
             execute_pm(left.list[i], right.list[i], current_binding)
           end
         end
-      elsif right.is_a?(Array)
-        if left.list.size > right.size
+        STDERR.puts('**warning: pm_list right executed')
+        Wtf::Lang::ListType.new([])
+      elsif right.is_a?(Wtf::Lang::ListType)
+        if left.list.size > right.val.size
           raise_rt_err(
               Lang::Exception::NotMatched,
               left.location_str,
-              "list size not matched: #{left.list.size} and #{right.size}"
+              "list size not matched: #{left.list.size} and #{right.val.size}"
           )
         end
         left.list.size.times do |i|
@@ -426,10 +434,10 @@ module Wtf
               # rest match must be the last argument
               if i == left.list.size - 1
                 vals = []
-                right[i..-1].each do |right_item|
+                right.val[i..-1].each do |right_item|
                   vals << execute(right_item)
                 end
-                execute_pm(left_node.identifier, vals, current_binding)
+                execute_pm(left_node.identifier, Wtf::Lang::ListType.new(vals), current_binding)
               else
                 raise_rt_err(Lang::Exception::SemanticsError,
                              left_node.location_str,
@@ -439,9 +447,10 @@ module Wtf
               raise "PMModIdNode mod type: #{left.list[i].mod}"
             end
           else
-            execute_pm(left.list[i], right[i], current_binding)
+            execute_pm(left.list[i], right.val[i], current_binding)
           end
         end
+        right
       else
         raise_rt_err(
             Lang::Exception::NotMatched,

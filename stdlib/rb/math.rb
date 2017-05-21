@@ -7,7 +7,7 @@ module Wtf
       module_name 'Math'
 
       defn 'sin' do |_env, x|
-        ::Math.sin(x)
+        Wtf::Lang::FloatType.new(::Math.sin(x.val))
       end
     end
   end
