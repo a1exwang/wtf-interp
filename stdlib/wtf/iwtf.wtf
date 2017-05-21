@@ -1,0 +1,13 @@
+iwtf = -> {
+  print("Wtf Interactive Shell Version 0.1.0\niwtf> ");
+  loop(-> {
+    str = gets();
+    secure {
+      puts("# => " + wtf(eval(str)));
+    } rescue {type: type, message: message} {
+      puts("Exception occurred: " + to_s(type));
+      puts(message);
+    };
+    print("iwtf> ");
+  });
+}

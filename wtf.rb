@@ -3,6 +3,7 @@ require_relative 'parser'
 require_relative 'vm'
 require_relative 'stdlib/kernel'
 require 'optparse'
+require 'stringio'
 
 args = ARGV
 program_args = []
@@ -36,43 +37,23 @@ OptionParser.new do |opts|
 
 end.parse!(args)
 
-str = nil
-path = nil
-
 if options[:mode] == :iwtf
-  puts 'interactive wtf'
-	line = 1
-	while true
-		print "\niwtf> "
-		str = gets&.chop!
-		break unless str
-    begin
-			lexer.load_file(str, 'iwtf', line, 1)
-			puts "= #{parser.parse}"
-		rescue ParseError
-			puts $!
-		end
-		line += 1
-	end
-  exit
+  path = '<iwtf>'
+  io = StringIO.new('main = -> { iwtf(); }')
 elsif options[:mode] == :eval
   path = '<eval>'
-  str = options[:code]
+  io = StringIO.new(options[:code])
 else
   raise "file not found: #{options[:file_path]}" unless File.exist? options[:file_path]
-
-  f = File.new(options[:file_path])
+  io = open(options[:file_path], 'r')
   path = options[:file_path]
-  str = f.read
 end
 
-# Create VM
-vm = Wtf::VM.instance
-vm.set_program_args(program_args)
-# Load stdlib
 begin
+  vm = Wtf::VM.instance
+  vm.set_program_args(program_args)
   vm.load_stdlib
-  vm.exec_file(path, str, options)
+  vm.load_file(io, path)
   vm.execute_top_fn
 rescue Wtf::Lang::Exception::WtfError => e
   STDERR.puts "#{e.class}\n  #{e.message}"

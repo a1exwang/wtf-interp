@@ -116,7 +116,6 @@
   puts(ARGV);
 ```
 
-
 ### TODOs
 - Data Types
   - float
@@ -124,8 +123,62 @@
 - syntax
   - regex
   - "is" operator
+  - Don't need "main" function
 
 - stdlib
   - math
   - io
   - string
+  - Expose meta objects of data types in stdlib
+  
+- bugs
+  - exceptions var redefinition bug
+  
+### Language Design 
+
+1. Main Goals
+    1. Make the programmers happy.
+    1. Functional.
+    1. What-you-see-is-what-you-get syntax.
+    1. Simple basic syntax plus syntax sugars.
+    1. Code fast, cod short.
+    1. Do not refactor, rewrite it.
+    1. Ruby inter-ops.
+    1. Threads are shit.
+    
+### Design Details
+
+- wtf.rb
+    - Interpret executable
+    
+- lexer.rb
+    - Lexer
+    
+- parse.y
+    - yacc-like parser
+    
+- eval.rb
+    - provide "eval" function
+ 
+- vm.rb
+    - Interpreter virtual machine
+    
+- api.rb
+    - Ruby inter-ops
+    
+- ast/nodes.rb
+    - AST Node definitions 
+
+- stdlib/kernel.rb
+    - Basic wtf data types in Ruby
+    
+- How the interpreter runs your code
+    1. Parser runs, and drives the lexer. Generate an AST.
+        - Each node knows its children
+    1. AST traversal 1
+        - Each node knows its parent, and the interpreter knows the entry point
+    1. Evaluate the AST node of the "main" function
+    
+- Ruby and wtf objects
+    1. Each wtf object type is a WtfType objects
+    1. wtf exception is Ruby Wtf::Lang::Exception::WtfError

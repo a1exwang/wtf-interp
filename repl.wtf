@@ -1,8 +1,4 @@
 main = -> {
-  print("Wtf Interactive Shell Version 0.1.0\niwtf> ");
-  loop(-> {
-    str = gets();
-    puts("# => " + wtf(eval(str)));
-    print("iwtf> ");
-  });
+  require("iwtf");
+  iwtf();
 }

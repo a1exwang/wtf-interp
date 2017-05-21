@@ -3,7 +3,7 @@ require_relative 'stdlib/kernel'
 
 module Wtf
   class VM
-    STDLIB_ROOT = 'stdlib/wtf'
+    STDLIB_ROOT = File.join(File.dirname(__FILE__), 'stdlib', 'wtf')
     attr_reader :global_bindings
     class Bindings
       attr_reader :entity, :lexical_parent
@@ -102,52 +102,6 @@ module Wtf
       init_libs
       load_stdlib_files
     end
-    def load_stdlib_files
-      Dir.entries(VM::STDLIB_ROOT).each do |filename|
-        if filename =~ /\.wtf$/
-          path = File.join(VM::STDLIB_ROOT, filename)
-          open(path, 'r') do |f|
-            exec_file(path, f.read)
-          end
-
-        end
-      end
-    end
-
-    def exec_file(path, code, options = {})
-      lexer = Wtf::Lexer.new(code, path, 1, 1)
-      parser = Wtf::Parser.new
-
-      # Parser
-      ast = parser.parse(lexer)
-      if options[:stage] == :ast
-        puts JSON.pretty_generate(JSON.parse(ast.to_json))
-        exit
-      end
-
-      # AST traversing 1
-      ast.set_lexical_parent(Wtf::VM.instance.global_bindings)
-      if options[:stage] == :ast1
-        puts JSON.pretty_generate(JSON.parse(ast.to_json))
-        exit
-      end
-      self.execute(ast)
-    end
-
-    def top_fn
-      if @top_fn
-        @top_fn
-      else
-        @top_fn = NativeFnDefNode.new([], lambda do |env, params|
-          unless params.size == 0
-            raise Lang::Exception::WrongArgument,
-                  "wrong number of args in function #{env[:node].name}: \n" +
-                      "#{params.size} given but #{args.size} needed"
-          end
-          execute_fn('main', VM.instance.top_fn)
-        end, { file: '<top level>'})
-      end
-    end
 
     private
     def initialize
@@ -164,9 +118,37 @@ module Wtf
       thread[:exception_handler_stack] = []
     end
 
+    def get_top_fn
+      if @top_fn
+        @top_fn
+      else
+        @top_fn = NativeFnDefNode.new([], lambda do |env, params|
+          unless params.size == 0
+            raise Lang::Exception::WrongArgument,
+                  "wrong number of args in function #{env[:node].name}: \n" +
+                      "#{params.size} given but #{args.size} needed"
+          end
+          execute_fn('main', get_top_fn)
+        end, { file: '<top level>'})
+      end
+    end
+    def load_stdlib_files
+      Dir.entries(VM::STDLIB_ROOT).each do |filename|
+        if filename =~ /\.wtf$/
+          path = File.join(VM::STDLIB_ROOT, filename)
+          io = open(path, 'r')
+          Wtf.wtf_load_file(io, path, @global_bindings)
+        end
+      end
+    end
+
     public
     def execute_top_fn
-      execute_fn('main', Wtf::VM.instance.top_fn)
+      execute_fn('main', get_top_fn)
+    end
+    def load_file(io, file_path, current_bindings = nil)
+      current_bindings ||= @global_bindings
+      Wtf.wtf_load_file(io, file_path, current_bindings)
     end
 
     def fn_def_node_call(node, params, current_bindings, _caller)
@@ -283,10 +265,12 @@ module Wtf
       end
     end
 
+    # Raise an exception
     def raise_rt_err(err, location, msg)
       raise err, "at #{location}\n#{msg}"
     end
 
+    # Define module
     def defm(name, current_binding)
       node = ModNode.new([])
       mod = module_def(node, current_binding)
@@ -294,6 +278,7 @@ module Wtf
       mod
     end
 
+    # Create a WtfModule node
     def module_def(node, current_binding)
       mod = Wtf::Lang::ModuleType.new(node, current_binding, node.bindings)
       execute_stmt_list(node.stmt_list, node.bindings)
