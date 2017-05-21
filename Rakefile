@@ -7,5 +7,3 @@ desc 'Run integration test'
 task :itest => :racc do
   print `ruby test/integration_tests.rb`
 end
-
-

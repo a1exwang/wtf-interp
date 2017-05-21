@@ -56,10 +56,11 @@ begin
   vm.load_file(io, path)
   vm.execute_top_fn
 rescue Wtf::Lang::Exception::WtfError => e
-  STDERR.puts "#{e.class}\n  #{e.message}"
+  STDERR.puts e.class.to_s
+  STDERR.puts '  ' + e.message
   STDERR.puts "Calling stack:\n"
+  STDERR.puts "\tat '#{e.wtf_location}'"
   Thread.current[:stack].reverse_each do |fn|
-    caller = fn
-    STDERR.puts "\tcaller at '#{caller.location_str}', calling function: #{caller.name}"
+    STDERR.puts "\tfunction '#{fn.name}' at '#{fn.location_str}'"
   end
 end

@@ -6,6 +6,12 @@ module Wtf
   module Lang
     module Exception
       class WtfError < ::Exception
+        attr_reader :wtf_location
+        def initialize(msg, location)
+          super(msg)
+          @wtf_message = msg
+          @wtf_location = location
+        end
         def to_wtf_map
           { 'type' => self.class.to_s, 'message' => self.message }
         end
@@ -13,6 +19,7 @@ module Wtf
       class ModuleNotFound < WtfError; end
       class FileNotFound < WtfError; end
       class VarNotFound < WtfError; end
+      class VarRedefinition < WtfError; end
       class WrongArgument < WtfError; end
       class NotMatched < WtfError; end
       class SemanticsError < WtfError; end

@@ -24,7 +24,11 @@ module Wtf
     end
 
     def location_str
-			[@file, @line, @col].join(', ')
+			if @line && @col
+				[@file, @line, @col].join(', ')
+			else
+				@file
+      end
     end
 	end
 
@@ -424,16 +428,19 @@ module Wtf
 		end
 		def set_lexical_parent(p)
 			super
-			@bindings = VM::Bindings.new(self, p)
-			@lexical_parent = @bindings
+			@bindings = VM::Bindings.new(self, @lexical_parent)
+			@pm.set_lexical_parent(@bindings)
 		end
 		def to_json(*args)
 			{
         type: :exception,
-				stmt_list: @stmt_list,
+				stmt_list: stmt_list,
 				pm: @pm,
 				rescue_list: @rescue_list
 			}.to_json(*args)
+    end
+    def unbind_all
+			@bindings.wtf_undef_all
 		end
 	end
 

@@ -38,7 +38,8 @@ module Wtf
         if @bindings.key? name
           err_str = "Duplicate definition of \"#{name}\" error\n" +
                     "at binding #{self.location_str}"
-          raise err_str
+          raise
+          raise Lang::Exception::VarRedefinition.new(err_str, self.location_str)
         end
         @bindings[name] = val
       end
@@ -223,6 +224,8 @@ module Wtf
         rescue Lang::Exception::WtfError => e
           execute_pm(node.pm, e.to_wtf_map, node.bindings)
           execute_stmt_list(node.rescue_list, node.bindings)
+        ensure
+          node.unbind_all
         end
       when Op1Node
         case node.op
@@ -267,7 +270,7 @@ module Wtf
 
     # Raise an exception
     def raise_rt_err(err, location, msg)
-      raise err, "at #{location}\n#{msg}"
+      raise err.new(msg, location)
     end
 
     # Define module

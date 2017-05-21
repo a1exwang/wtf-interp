@@ -124,6 +124,7 @@
   - regex
   - "is" operator
   - Don't need "main" function
+  - NO operator overriding
 
 - stdlib
   - math
@@ -182,3 +183,6 @@
 - Ruby and wtf objects
     1. Each wtf object type is a WtfType objects
     1. wtf exception is Ruby Wtf::Lang::Exception::WtfError
+
+- Bindings
+    1. Bindings change only at function or module definitions or ensure..rescue block
