@@ -84,8 +84,8 @@ module Wtf
         @node = node
         @name = node.name
       end
-      def to_s
-        "module #{full_name}"
+      def wtf_to_s(env)
+        Wtf::Lang::StringType.new("<module #{full_name}>")
       end
       def full_name
         if @parent
@@ -222,7 +222,7 @@ module Wtf
 
     class MetaType < WtfType
       attr_reader :full_name, :cls
-      def wtf_to_s(env)
+      def wtf_to_s(_env)
         Wtf::Lang::StringType.new("<Type: #{self.full_name}>")
       end
     end
@@ -372,6 +372,23 @@ module Wtf
                 raise 'Unknown value type'
             end
         Lang::StringType.new(str)
+      end
+      defn('include', g) do |env, obj|
+        mod_bindings = obj.bindings
+        caller_bindings = env[:callers_bindings]
+        mod_bindings.wtf_local_var_names.val.each do |wtf_var_name|
+          name = wtf_var_name.val
+          var = mod_bindings.wtf_get_var(name, '<native>')
+          caller_bindings.wtf_def_var(name, var)
+        end
+        obj
+      end
+      defn('local_var_names', g) do |env|
+        callers_bindings = env[:callers_bindings]
+        callers_bindings.wtf_local_var_names
+      end
+      defn('exit', g) do |env, code = 0|
+        exit(code)
       end
 
       def_global_vars
