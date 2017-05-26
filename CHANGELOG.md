@@ -1,5 +1,10 @@
 # Change log for wtf-interpreter
 
+## [0.3.0] 2017-05-26
+- Interpreter
+  - We don't need a 'main' function
+  - Implement Ruby-like require and Python-like import
+
 ## [0.2.1] 2017-05-26
 - Stdlib
   - exit(exit\_code)

@@ -141,7 +141,7 @@ module Wtf
         if filename =~ /\.wtf$/
           path = File.join(VM::STDLIB_ROOT, filename)
           io = open(path, 'r')
-          Wtf.wtf_load_file(io, path, @global_bindings)
+          Wtf.wtf_require_file(io, path, @global_bindings)
         end
       end
     end
@@ -150,18 +150,19 @@ module Wtf
     def execute_top_fn
       execute_fn('main', get_top_fn)
     end
-    def load_file(io, file_path, current_bindings = nil)
+    def import_file(io, file_path, current_bindings = nil)
       current_bindings ||= @global_bindings
-      Wtf.wtf_load_file(io, file_path, current_bindings)
+      # Wtf.wtf_require_file(io, file_path, current_bindings)
+      Wtf.wtf_import_file(io, file_path, current_bindings)
     end
 
     def fn_obj_call(fn, params, current_bindings, _caller)
-      ret = nil
+      ret = Wtf::Lang::NilType.new
       node = fn.node
       if node.native?
         # caller's binding
         Thread.current[:stack] << node
-        ret = node.call(current_bindings, params)
+        ret = node.call(current_bindings, params, self)
         Thread.current[:stack].pop
         ret
       else
@@ -268,6 +269,8 @@ module Wtf
         execute_pm_node(node, current_binding)
       when Wtf::Lang::LiteralType, Wtf::Lang::SimpleType
         return node
+      when StmtListNode
+        execute_stmt_list(node.stmt_list, current_binding)
       else
         raise "unknown node type: '#{node.class}', value: '#{node}'"
       end
@@ -295,9 +298,11 @@ module Wtf
 
     private
     def execute_stmt_list(stmt_list, bindings)
+      ret = Wtf::Lang::NilType.new
       stmt_list.each do |c|
-        execute(c, bindings)
+        ret = execute(c, bindings)
       end
+      ret
     end
     def fn_cal_node_call(node, current_binding)
       params = []

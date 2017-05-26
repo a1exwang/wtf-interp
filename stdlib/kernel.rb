@@ -342,6 +342,19 @@ module Wtf
       defn('require', g) do |env, str_obj|
         Wtf.wtf_require(str_obj.val, env[:callers_bindings])
       end
+      defn('import', g) do |env, str_obj|
+        Wtf.wtf_import(str_obj.val, env[:callers_bindings])
+      end
+      defn('include', g) do |env, obj|
+        mod_bindings = obj.bindings
+        caller_bindings = env[:callers_bindings]
+        mod_bindings.wtf_local_var_names.val.each do |wtf_var_name|
+          name = wtf_var_name.val
+          var = mod_bindings.wtf_get_var(name, '<native>')
+          caller_bindings.wtf_def_var(name, var)
+        end
+        obj
+      end
       defn('to_s', g) do |env, obj|
         case obj
         when AstNode
@@ -372,16 +385,6 @@ module Wtf
                 raise 'Unknown value type'
             end
         Lang::StringType.new(str)
-      end
-      defn('include', g) do |env, obj|
-        mod_bindings = obj.bindings
-        caller_bindings = env[:callers_bindings]
-        mod_bindings.wtf_local_var_names.val.each do |wtf_var_name|
-          name = wtf_var_name.val
-          var = mod_bindings.wtf_get_var(name, '<native>')
-          caller_bindings.wtf_def_var(name, var)
-        end
-        obj
       end
       defn('local_var_names', g) do |env|
         callers_bindings = env[:callers_bindings]

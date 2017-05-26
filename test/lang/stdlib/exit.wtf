@@ -1,6 +1,4 @@
-main = -> {
-  puts(1);
-  puts(2);
-  exit();
-  puts(3);
-}
+puts(1);
+puts(2);
+exit();
+puts(3);

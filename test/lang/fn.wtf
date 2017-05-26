@@ -1,6 +1,4 @@
-main = -> {
-  fn = ->() { -> () { "fn"; }; };
-  puts(whats(fn));
-  puts(whats(fn()));
-  puts(fn()());
-}
+fn = ->() { -> () { "fn"; }; };
+puts(whats(fn));
+puts(whats(fn()));
+puts(fn()());

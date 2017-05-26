@@ -84,6 +84,33 @@
   puts(A);
 ```
 
+- require() v.s. import()
+```
+  # a.wtf
+  A = 1
+  
+  # b.wtf
+  B = 2
+  
+  # "require" is like Ruby's require
+  # It defines all vars of the required file in current bindings
+  
+  # require.wtf
+  a = require("a");
+  puts(A); # => 1
+  puts(a); # => 1
+  
+  # "import" is like Python's import
+  # It does not affect current bindings,
+  #   but returns a module object containing 
+  #   all vars defined in the imported file
+  
+  # import.wtf
+  b = import("b");
+  puts(b);      # => <module ./b.wtf>
+  puts(b::B);   # => 1
+```
+
 - Pattern Matching
 
 ```
@@ -159,10 +186,12 @@
     - yacc-like parser
     
 - eval.rb
-    - provide "eval" function
+    - Implement "eval"-like functions in Ruby
+    - e.g. eval(str), require(file), import(file)
  
 - vm.rb
     - Interpreter virtual machine
+    - The virtual machine executes AST nodes
     
 - api.rb
     - Ruby inter-ops
@@ -171,7 +200,7 @@
     - AST Node definitions 
 
 - stdlib/kernel.rb
-    - Basic wtf data types in Ruby
+    - Basic wtf data types and kernel functions in Ruby
     
 - How the interpreter runs your code
     1. Parser runs, and drives the lexer. Generate an AST.

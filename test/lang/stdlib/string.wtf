@@ -1,4 +1,2 @@
-main = -> {
-  puts(Type::String::substr("0123456789", 3, 2));
-  puts(Type::List::sublist([1,2,3], 1,1));
-}
+puts(Type::String::substr("0123456789", 3, 2));
+puts(Type::List::sublist([1,2,3], 1,1));

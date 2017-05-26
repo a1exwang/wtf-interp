@@ -1,4 +1,2 @@
-main = -> {
-  puts(Math::sin(0));
-  puts(Math::sin(1));
-}
+puts(Math::sin(0));
+puts(Math::sin(1));

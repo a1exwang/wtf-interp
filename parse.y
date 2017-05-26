@@ -36,10 +36,14 @@ rule
 		}
 
 	# root node
-    root: {}
-    | exp {
-		result = val[0]
-	}
+	root: exp { result = StmtListNode.new([val[0]], loc_of(val[0])) }
+	  | stmt_list {
+	    if val[0].size > 0
+        result = StmtListNode.new(val[0], loc_of(val[0][0]))
+	    else
+	      result = StmtListNode.new(val[0])
+	    end
+	  }
 	stmt: exp { result = val[0] }
 	  | LET pm EQ exp { result = PMNode.new(val[1], val[3], loc_of(val[0])) }
 
@@ -162,7 +166,7 @@ rule
     end
 
 	def parse(lexer)
-        @lexer = lexer
+    @lexer = lexer
 		do_parse
 	end
 

@@ -53,8 +53,7 @@ begin
   vm = Wtf::VM.instance
   vm.set_program_args(program_args)
   vm.load_stdlib
-  vm.load_file(io, path)
-  vm.execute_top_fn
+  vm.import_file(io, path)
 rescue Wtf::Lang::Exception::WtfError => e
   STDERR.puts e.class.to_s
   STDERR.puts '  ' + e.message

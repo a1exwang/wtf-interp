@@ -1,13 +1,10 @@
-main = -> {
-
-  each([0, 1, 2], -> (x) {
-    puts("start " + to_s(x));
-    secure {
-      let [x, y] = [1, 2, 3];
-    } rescue {type: type, message: message} {
-      puts("Exception occurred: " + to_s(type));
-      puts(message);
-    };
-    puts("end " + to_s(x));
-  });
-}
+each([0, 1, 2], -> (x) {
+  puts("start " + to_s(x));
+  secure {
+    let [x, y] = [1, 2, 3];
+  } rescue {type: type, message: message} {
+    puts("Exception occurred: " + to_s(type));
+    puts(message);
+  };
+  puts("end " + to_s(x));
+});

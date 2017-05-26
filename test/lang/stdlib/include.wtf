@@ -1,10 +1,8 @@
-main = -> {
-  C = module {
-    B = module {
-      A = 1;
-    };
+C = module {
+  B = module {
+    A = 1;
   };
-  include(C::B);
-  puts(local_var_names());
-  puts(A);
-}
+};
+include(C::B);
+puts(local_var_names());
+puts(A);

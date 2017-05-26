@@ -1,0 +1,2 @@
+Mod = import("simple_math");
+puts(Mod::SimpleMath::quad(2));

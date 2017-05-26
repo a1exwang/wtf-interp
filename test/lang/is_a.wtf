@@ -1,5 +1,3 @@
-main = -> {
-  puts(Type::is_a(1, Type::Int));
-  puts(Type::is_a(1, Type::Float));
-  puts(Type::is_a(Type::is_a, Type::Function));
-}
+puts(Type::is_a(1, Type::Int));
+puts(Type::is_a(1, Type::Float));
+puts(Type::is_a(Type::is_a, Type::Function));

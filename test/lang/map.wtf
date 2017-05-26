@@ -1,4 +1,2 @@
-main = -> {
-  map = { a: 2 + 3 };
-  puts(map["a"]);
-}
+map = { a: 2 + 3 };
+puts(map["a"]);
