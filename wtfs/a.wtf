@@ -1,40 +1,38 @@
 # entry point function
-main = -> {
 
-  # function definition
-  fn = -> (a,b,c) {
-    # binary operators
-    123 + 1221 + a;
+# function definition
+fn = -> (a,b,c) {
+  # binary operators
+  123 + 1221 + a;
+};
+
+# function call
+puts(fn(1,2,3));
+
+# string literal
+puts("str literal: \n" + "\t tab character");
+
+# high order function
+fn1 = -> (fn) {
+  fn(3 + 5);
+};
+fn1(-> (val) { puts(val); });
+
+
+# if statements
+puts(
+  if (True) {
+    "true";
+  } else {
+    "false";
+  }
+);
+
+Kernel = module {
+  Math = module {
+    Zero = 0;
   };
+};
 
-  # function call
-  puts(fn(1,2,3));
-
-  # string literal
-  puts("str literal: \n" + "\t tab character");
-
-  # high order function
-  fn1 = -> (fn) {
-    fn(3 + 5);
-  };
-  fn1(-> (val) { puts(val); });
-
-
-  # if statements
-  puts(
-    if (True) {
-      "true";
-    } else {
-      "false";
-    }
-  );
-
-  Kernel = module {
-    Math = module {
-      Zero = 0;
-    };
-  };
-
-  puts(Kernel::Math::Zero);
-  puts(Kernel::Fuck);
-}
+puts(Kernel::Math::Zero);
+puts(Kernel::Fuck);

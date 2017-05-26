@@ -8,6 +8,7 @@ prechigh
 	nonassoc UMINUS
 	left STAR SLASH         # * /
 	left PLUS HYPHEN        # + -
+	left EQEQ NEQ LT GT LTE GTE # == != < > <= >=
 	right EQ
 	right FN_BEGIN FN_BEGIN_AND_LPAR
 	right RPAR RBRAC RBRACK
@@ -69,6 +70,12 @@ rule
      | exp HYPHEN exp { result = Op2Node.new(:minus, val[0], val[2], loc_of(val[0])) }
      | exp STAR exp { result = Op2Node.new(:mul, val[0], val[2], loc_of(val[0])) }
      | exp SLASH exp { result = Op2Node.new(:div, val[0], val[2], loc_of(val[0])) }
+     | exp EQEQ exp { result = Op2Node.new(:eqeq, val[0], val[2], loc_of(val[0])) }
+     | exp NEQ exp { result = Op2Node.new(:neq, val[0], val[2], loc_of(val[0])) }
+     | exp LT exp { result = Op2Node.new(:lt, val[0], val[2], loc_of(val[0])) }
+     | exp GT exp { result = Op2Node.new(:gt, val[0], val[2], loc_of(val[0])) }
+     | exp LTE exp { result = Op2Node.new(:lte, val[0], val[2], loc_of(val[0])) }
+     | exp GTE exp { result = Op2Node.new(:gte, val[0], val[2], loc_of(val[0])) }
      | HYPHEN exp =UMINUS { result = Op1Node.new(:minus, val[1], loc_of(val[0])) }
      | LPAR exp RPAR { result = val[1] }
      | identifier { result = VarRefNode.new(val[0], loc_of(val[0])) }

@@ -41,6 +41,24 @@ module Wtf
       def wtf_to_s(env)
         StringType.new(@val.to_s)
       end
+      def wtf_eqeq(env, other)
+        BoolType.new(@val == other.val)
+      end
+      def wtf_neq(env, other)
+        BoolType.new(@val != other.val)
+      end
+      def wtf_lt(env, other)
+        BoolType.new(@val < other.val)
+      end
+      def wtf_gt(env, other)
+        BoolType.new(@val > other.val)
+      end
+      def wtf_lte(env, other)
+        BoolType.new(@val <= other.val)
+      end
+      def wtf_gte(env, other)
+        BoolType.new(@val >= other.val)
+      end
     end
     class LiteralType < SimpleType
       attr_reader :name
@@ -66,11 +84,13 @@ module Wtf
     end
     class BoolType < LiteralType
       def initialize(val)
+        @val = val
         super(val ? 'True' : 'False')
       end
     end
     class NilType < LiteralType
       def initialize
+        @val = nil
         super('Nil')
       end
     end
@@ -82,7 +102,7 @@ module Wtf
         @lexical_parent = lexical_parent
         @bindings = bindings
         @node = node
-        @name = node.name
+        @name = node.name || node.file
       end
       def wtf_to_s(env)
         Wtf::Lang::StringType.new("<module #{full_name}>")
@@ -219,6 +239,12 @@ module Wtf
         @node = node
       end
     end
+    class BindingsType < WtfType
+      attr_reader :bindings
+      def initialize(bindings)
+        @bindings = bindings
+      end
+    end
 
     class MetaType < WtfType
       attr_reader :full_name, :cls
@@ -336,8 +362,13 @@ module Wtf
           fn_obj_call(fn, [], env[:node].bindings, env[:node])
         end
       end
-      defn('eval', g) do |env, str_obj|
-        Wtf.wtf_eval(str_obj.val, env[:callers_bindings])
+      defn('eval', g) do |env, str_obj, bindings = nil|
+        if bindings.nil?
+          bindings = env[:callers_bindings]
+        else
+          bindings = bindings.bindings
+        end
+        Wtf.wtf_eval(str_obj.val, bindings)
       end
       defn('require', g) do |env, str_obj|
         Wtf.wtf_require(str_obj.val, env[:callers_bindings])
@@ -363,10 +394,14 @@ module Wtf
           obj.wtf_to_s(env)
         end
       end
-      defn('true?', g) do |env, obj|
-        Lang::LiteralType.new(!(obj == Lang::LiteralType.false_val || obj == Lang::LiteralType.nil_val))
+      defn('true?', g) do |_env, obj|
+        if obj.is_a?(Lang::BoolType) && (obj.val == false || obj.val == nil)
+          Lang::BoolType.false_val
+        else
+          Lang::BoolType.true_val
+        end
       end
-      defn('whats', g) do |env, obj|
+      defn('whats', g) do |_env, obj|
         str =
             case obj
               when Wtf::Lang::StringType
@@ -386,12 +421,20 @@ module Wtf
             end
         Lang::StringType.new(str)
       end
+
+      defn('current_bindings', g) do |env|
+        Wtf::Lang::BindingsType.new(env[:callers_bindings])
+      end
       defn('local_var_names', g) do |env|
         callers_bindings = env[:callers_bindings]
         callers_bindings.wtf_local_var_names
       end
-      defn('exit', g) do |env, code = 0|
-        exit(code)
+      defn('global_var_names', g) do |env|
+        env[:vm].global_bindings.wtf_local_var_names
+      end
+      defn('exit', g) do |env, code = nil|
+        exit(code&.val || 0)
+        Wtf::Lang::NilType.nil_val
       end
 
       def_global_vars
@@ -402,6 +445,7 @@ module Wtf
     def def_stdlib
       require_relative './rb/math'
       require_relative './rb/type'
+      require_relative './rb/readline'
 
       # This will define all wtf modules written in Ruby
       Wtf::Api::WtfModuleBaseHelper.instance.define_all(self)

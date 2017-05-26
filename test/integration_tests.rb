@@ -17,15 +17,27 @@ def test_file(file_path, n)
   txt_file_path = File.join(File.dirname(file_path), Pathname.new(file_path).basename('.wtf').to_s + '.txt')
   if File.exist?(txt_file_path)
     test_start_time = Time.now
-    output = `ruby #{@interp_path} --file #{file_path} -a #{params}`
+    output = nil
+    error = nil
+    exit_status = 1
+    Open3.popen3("ruby #{@interp_path} --file #{file_path} -a #{params}") do|stdin, stdout, stderr, wait_thr|
+      output = stdout.read
+      error = stderr.read
+      exit_status = wait_thr.value
+    end
+
     expected = File.read(txt_file_path)
-    unless output == expected
+    unless exit_status.to_i == 0 && output == expected && error == ''
       diff = Diffy::Diff.new(output, expected).to_s
-      raise "integration test failed!\n" +
-                "file: '#{file_path}'\n" +
+      puts
+      puts "!!!!!!!!!!!!!!!!!!!!!!!!!\n" +
+               "integration test failed!\n" +
+                "file: '#{file_path}'\n-----------\n" +
                 "output: \n#{output}\n------\n" +
                 "expected: \n#{expected}\n------\n" +
-                "diff: \n#{diff}\n------\n"
+                "diff: \n#{diff}\n------\n" +
+                "stderr : \n#{error}\n------\n"
+      exit(1)
     end
     test_delta_time = Time.now - test_start_time
     @io.puts('  %-4d%-30s%s  %0.3fs' % [n, file_path, ColorizedString['[Passed]'].colorize(:green), test_delta_time])

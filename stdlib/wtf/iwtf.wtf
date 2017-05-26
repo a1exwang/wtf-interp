@@ -1,13 +1,18 @@
 iwtf = -> {
-  print("Wtf Interactive Shell Version 0.1.0\niwtf> ");
+  puts("Wtf Interactive Shell Version 0.1.0");
+  __iwtf_bindings = current_bindings();
   loop(-> {
-    str = gets();
+    str = Readline::readline("iwtf> ");
     secure {
-      puts("# => " + eval(str));
+      if (str == Nil) {
+        puts("Bye! >_O");
+        exit(0);
+      } else {
+        puts("# => " + eval(str, __iwtf_bindings));
+      };
     } rescue {type: type, message: message} {
       puts("Exception occurred: " + to_s(type));
       puts(message);
     };
-    print("iwtf> ");
   });
 };

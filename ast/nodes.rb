@@ -173,12 +173,7 @@ module Wtf
 		end
 
 		def call(callers_bindings, params, vm)
-			env = {
-					node: self,
-					callers_bindings: callers_bindings,
-					caller: callers_bindings.entity,
-					vm: vm
-			}
+      env = vm.construct_env(self, callers_bindings)
 			@callable.(env, params)
 		end
 		def direct_call(env, params)
@@ -210,7 +205,7 @@ module Wtf
 		end
 		def bind_to_var(name)
 			@name = name unless @name
-		end
+    end
 		private
 		def set_module_type(module_type)
 			@module_type = module_type

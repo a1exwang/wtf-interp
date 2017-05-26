@@ -34,6 +34,18 @@ module Wtf
 								:FN_BEGIN_AND_LPAR
               when /\A->/
                 :FN_BEGIN
+							when /\A>=/
+								:GTE
+							when /\A<=/
+								:LTE
+							when /\A==/
+								:EQEQ
+							when /\A!=/
+								:NEQ
+							when /\A</
+								:LT
+							when /\A>/
+								:GT
 							when /\A::/
 								:COLON2
 							when /\A,/

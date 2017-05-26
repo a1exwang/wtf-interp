@@ -1,5 +1,16 @@
 # Change log for wtf-interpreter
 
+## [0.3.1] 2017-05-26
+- Stdlib
+  - require/import supports relative path
+  - Add readline support to stdlib
+- Syntax
+  - Add comparison operators
+- Bug fix
+  - Fix "if" expression bound to global bindings bug
+  - Test scripts also check stderr
+  - Test scripts cleaner format
+
 ## [0.3.0] 2017-05-26
 - Interpreter
   - We don't need a 'main' function

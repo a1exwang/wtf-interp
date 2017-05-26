@@ -39,7 +39,7 @@ end.parse!(args)
 
 if options[:mode] == :iwtf
   path = '<iwtf>'
-  io = StringIO.new('main = -> { iwtf(); }')
+  io = StringIO.new('iwtf()')
 elsif options[:mode] == :eval
   path = '<eval>'
   io = StringIO.new(options[:code])

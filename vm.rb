@@ -106,6 +106,15 @@ module Wtf
       load_stdlib_files
     end
 
+    def construct_env(callee_node, callers_bindings)
+      {
+          node: callee_node,
+          callers_bindings: callers_bindings,
+          caller: callers_bindings.entity,
+          vm: self
+      }
+    end
+
     private
     def initialize
       @global_bindings = Bindings.new(nil, nil)
@@ -235,8 +244,7 @@ module Wtf
           when :plus
             return self.execute(node.p1, current_binding)
           when :minus
-            # TODO: construct an env object
-            return self.execute(node.p1, current_binding).wtf_uminus({})
+            return self.execute(node.p1, current_binding).wtf_uminus(self.construct_env(node, current_binding))
         else
           raise 'unknown op1: ' + node.op
         end
@@ -245,21 +253,34 @@ module Wtf
         p2 = self.execute(node.p2, current_binding)
 
         # TODO: construct a env object
+        env = self.construct_env(node, current_binding)
         case node.op
         when :plus
-          return p1.wtf_plus({}, p2)
+          return p1.wtf_plus(env, p2)
         when :minus
-          return p1.wtf_minus({}, p2)
+          return p1.wtf_minus(env, p2)
         when :mul
-          return p1.wtf_mul({}, p2)
+          return p1.wtf_mul(env, p2)
         when :div
-          return p2.wtf_div({}, p2)
+          return p1.wtf_div(env, p2)
+        when :eqeq
+          return p1.wtf_eqeq(env, p2)
+        when :neq
+          return p1.wtf_neq(env, p2)
+        when :lt
+          return p1.wtf_lt(env, p2)
+        when :gt
+          return p1.wtf_gt(env, p2)
+        when :lte
+          return p1.wtf_lte(env, p2)
+        when :gte
+          return p1.wtf_gte(env, p2)
         else
           raise 'unknown operator: ' + node.op
         end
       when IfNode
-        val = self.execute(node.exp)
-        if self.execute_fn('true?', current_binding.entity, [val], current_binding)
+        val = self.execute(node.exp, current_binding)
+        if self.execute_fn('true?', current_binding.entity, [val], current_binding).val
           execute_stmt_list(node.true_list, current_binding)
         else
           execute_stmt_list(node.false_list, current_binding)

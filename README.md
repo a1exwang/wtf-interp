@@ -38,10 +38,17 @@
 - Operators
 
 ```
+  puts(-1);
   puts(1 + 2);
   puts(1 - 2);
   puts(1 * 2);
   puts((3 + 4) * 5);
+  puts("abc" == "abc");
+  puts("abc" != "abcd");
+  puts("abc" != 1);
+  puts(Nil == Nil);
+  puts(1 > 2);
+  puts(1 >= 1);
 ```
 
 - Basic Statements
@@ -96,7 +103,7 @@
   # It defines all vars of the required file in current bindings
   
   # require.wtf
-  a = require("a");
+  a = require("./a");
   puts(A); # => 1
   puts(a); # => 1
   
@@ -106,7 +113,7 @@
   #   all vars defined in the imported file
   
   # import.wtf
-  b = import("b");
+  b = import("./b");
   puts(b);      # => <module ./b.wtf>
   puts(b::B);   # => 1
 ```

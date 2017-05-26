@@ -3,3 +3,9 @@
 -1
 2
 35
+True
+True
+True
+True
+False
+True

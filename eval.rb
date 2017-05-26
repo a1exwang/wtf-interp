@@ -7,7 +7,16 @@ module Wtf
     if file_name =~ /^\./
       # relative
       if current_script_path
-        File.join(current_script_path, file_name + '.wtf')
+        path1 = File.join(current_script_path, file_name + '.wtf')
+        if File.file?(path1)
+          return path1
+        end
+        path2 = File.join(File.expand_path('.'), file_name + '.wtf')
+        if File.file?(path2)
+          return path2
+        end
+        str = "Paths tried: \n\t%s\t%s" % [path1, path2]
+        raise Wtf::Lang::FileNotFound.new(str, current_script_path)
       else
         raise RuntimeError.new("require/import: I don't know current path to require.")
       end
@@ -52,8 +61,11 @@ module Wtf
     vm.execute(mod, current_bindings)
   end
   def self.wtf_import(file_name, current_bindings)
-    # TODO
-    file_path = self.wtf_parse_require_path(file_name, '.')
+    path = nil
+    if current_bindings.entity && current_bindings.entity.file
+      path = File.dirname(current_bindings.entity.file)
+    end
+    file_path = self.wtf_parse_require_path(file_name, path)
     io = open(file_path, 'r')
     self.wtf_import_file(io, file_path, current_bindings)
   end
