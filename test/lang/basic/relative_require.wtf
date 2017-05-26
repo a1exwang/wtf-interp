@@ -1,0 +1,2 @@
+require("./module");
+puts(C::B::A);

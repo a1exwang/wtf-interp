@@ -2,6 +2,20 @@ require_relative 'parser'
 require_relative 'stdlib/kernel'
 module Wtf
   STDLIB_DIR = File.join(File.dirname(__FILE__), 'stdlib', 'wtf')
+
+  def self.wtf_parse_require_path(file_name, current_script_path)
+    if file_name =~ /^\./
+      # relative
+      if current_script_path
+        File.join(current_script_path, file_name + '.wtf')
+      else
+        raise RuntimeError.new("require/import: I don't know current path to require.")
+      end
+    else
+      # stdlib
+      File.join(STDLIB_DIR, file_name + '.wtf')
+    end
+  end
   def self.wtf_eval(str, current_bindings, file_path = 'eval')
     lexer = Wtf::Lexer.new(str, file_path)
     parser = Wtf::Parser.new
@@ -11,7 +25,11 @@ module Wtf
     vm.execute(root_node, current_bindings)
   end
   def self.wtf_require(file_name, current_bindings)
-    file_path = File.join(STDLIB_DIR, file_name + '.wtf')
+    path = nil
+    if current_bindings.entity && current_bindings.entity.file
+      path = File.dirname(current_bindings.entity.file)
+    end
+    file_path = wtf_parse_require_path(file_name, path)
     io = open(file_path, 'r')
     self.wtf_require_file(io, file_path, current_bindings)
   end
@@ -34,7 +52,8 @@ module Wtf
     vm.execute(mod, current_bindings)
   end
   def self.wtf_import(file_name, current_bindings)
-    file_path = File.join(STDLIB_DIR, file_name + '.wtf')
+    # TODO
+    file_path = self.wtf_parse_require_path(file_name, '.')
     io = open(file_path, 'r')
     self.wtf_import_file(io, file_path, current_bindings)
   end

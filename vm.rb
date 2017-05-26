@@ -14,7 +14,6 @@ module Wtf
         if @entity.nil?
           # global binding
         elsif entity.is_a?(Wtf::ModNode)
-          @entity = nil
           @current_module = nil
           @current_module_proc = lambda { entity.module_type }
         else
