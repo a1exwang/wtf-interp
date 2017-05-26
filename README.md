@@ -80,6 +80,8 @@
   };
   puts(C::B::A);
   
+  include(C::B);
+  puts(A);
 ```
 
 - Pattern Matching
@@ -123,9 +125,6 @@
 ```
 
 ### TODOs
-- Data Types
-  - \[DONE] float
-
 - syntax
   - regex
   - "is" operator, binary comparison operator
@@ -135,11 +134,6 @@
 - stdlib
   - math
   - io
-  - \[DONE] string
-  - \[DONE] Expose meta objects of data types in stdlib
-  
-- bugs
-  - \[DONE] exceptions var redefinition bug
   
 ### Language Design 
 
