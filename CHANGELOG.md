@@ -1,5 +1,10 @@
 # Change log for wtf-interpreter
 
+## [0.3.2] 2017-05-27
+- Syntax
+  - Function definitions now supports
+    list pattern matching
+
 ## [0.3.1] 2017-05-26
 - Stdlib
   - require/import supports relative path

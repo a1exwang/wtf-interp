@@ -65,15 +65,14 @@
 - Functions as First Citizens
 
 ```
-  fn = -> (x, y) {
-    x + y;
-  }
-  
-  fn1 = -> (fn) {
-    fn(3, 5);
+  fn = ->() { -> () { "fn"; }; };
+  fn1 = ->(x, *args) {
+    x + args[0] + args[1] + args[2] + 1;
   };
-  
-  fn1(fn);
+  puts(whats(fn));
+  puts(whats(fn()));
+  puts(fn()());
+  puts(fn1(1, 2, 3, 4));
   
 ```
 
@@ -164,6 +163,7 @@
   - "is" operator, binary comparison operator
   - Don't need "main" function
   - NO operator overriding
+  - Unify pattern matching and var definition
 
 - stdlib
   - math

@@ -130,7 +130,12 @@ module Wtf
           if result.is_a?(StringType)
             StringType.new("\"#{result.val}\"")
           else
-            Wtf::VM.instance.execute_fn('to_s', env[:caller], [result], env[:node].bindings)
+            Wtf::VM.instance.execute_fn(
+                'to_s',
+                env[:caller],
+                Wtf::Lang::ListType.new([result]),
+                env[:node].bindings
+            )
           end
         end
         StringType.new("[#{vals.map{ |x| x.val }.join(', ')}]")
@@ -336,12 +341,12 @@ module Wtf
     def def_globals
       g = global_bindings
       defn('puts', g) do |env, obj|
-        str_obj = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
+        str_obj = execute_fn('to_s', env[:caller], Wtf::Lang::ListType.new([obj]), env[:node].bindings)
         puts str_obj.val
         str_obj
       end
       defn('print', g) do |env, obj|
-        str_obj = execute_fn('to_s', env[:caller], [obj], env[:node].bindings)
+        str_obj = execute_fn('to_s', env[:caller], Wtf::Lang::ListType.new([obj]), env[:node].bindings)
         print str_obj.val
         str_obj
       end
@@ -353,13 +358,13 @@ module Wtf
       end
       defn('each', g) do |env, collection, fn|
         collection.each do |item|
-          fn_obj_call(fn, [item], env[:node].bindings, env[:node])
+          fn_obj_call(fn, Wtf::Lang::ListType.new([item]), env[:node].bindings, env[:node])
         end
         collection
       end
       defn('loop', g) do |env, fn|
         loop do
-          fn_obj_call(fn, [], env[:node].bindings, env[:node])
+          fn_obj_call(fn, Wtf::Lang::ListType.new([]), env[:node].bindings, env[:node])
         end
       end
       defn('eval', g) do |env, str_obj, bindings = nil|

@@ -1,4 +1,8 @@
 fn = ->() { -> () { "fn"; }; };
+fn1 = ->(x, *args) {
+  x + args[0] + args[1] + args[2] + 1;
+};
 puts(whats(fn));
 puts(whats(fn()));
 puts(fn()());
+puts(fn1(1, 2, 3, 4));

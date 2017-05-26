@@ -170,12 +170,20 @@ module Wtf
       if node.native?
         # caller's binding
         Thread.current[:stack] << node
-        ret = node.call(current_bindings, params, self)
+        ret = node.call(current_bindings, params.val, self)
         Thread.current[:stack].pop
         ret
       else
         # params not used
-        node.bind_params(params)
+        # node.bind_params(params)
+        if params.val.size == 1
+          unless node.args.is_a? Wtf::IdNode
+            raise Wtf::Lang::NotMatched, 'Function parameter not matched'
+          end
+          node.bindings.wtf_def_var(node.args.name, params.val[0])
+        else
+          execute_pm(node.args, params, node.bindings)
+        end
         Thread.current[:stack] << node
         node.body.stmt_list.each do |code|
           ret = execute(code, node.bindings)
@@ -186,7 +194,11 @@ module Wtf
       end
     end
 
-    def execute_fn(name, caller, params = [], current_bindings = nil)
+    def execute_fn(name, caller, params = nil, current_bindings = nil)
+      if params.is_a?(Array)
+        raise 'this bug again, this should be a Wtf::Lang::ListType'
+      end
+      params ||= Wtf::Lang::ListType.new([])
       current_bindings ||= @global_bindings
       fn_def_node = current_bindings.wtf_get_var(name, current_bindings.location_str)
       fn_obj_call(fn_def_node, params, current_bindings, caller)
@@ -280,7 +292,11 @@ module Wtf
         end
       when IfNode
         val = self.execute(node.exp, current_binding)
-        if self.execute_fn('true?', current_binding.entity, [val], current_binding).val
+        if self.execute_fn(
+            'true?',
+            current_binding.entity,
+            Wtf::Lang::ListType.new([val]),
+            current_binding).val
           execute_stmt_list(node.true_list, current_binding)
         else
           execute_stmt_list(node.false_list, current_binding)
@@ -325,10 +341,11 @@ module Wtf
       ret
     end
     def fn_cal_node_call(node, current_binding)
-      params = []
+      param_list = []
       node.params.each do |p|
-        params << execute(p, current_binding)
+        param_list << execute(p, current_binding)
       end
+      params = Wtf::Lang::ListType.new(param_list)
 
       fn = execute(node.fn, current_binding)
       fn_obj_call(fn, params, current_binding, node)
@@ -344,16 +361,22 @@ module Wtf
       when PMMapNode
         execute_pm_map(left, right, current_binding)
       when IdNode
-        current_binding.wtf_def_var(left.name, execute(right))
+        right_val = execute(right)
+        # if right_val.is_a?(Wtf::Lang::ListType)
+        #   right_val = right_val.val[0]
+        # end
+        current_binding.wtf_def_var(left.name, right_val)
       when Wtf::Lang::StringType, Wtf::Lang::IntType
         right_val = execute(right)
-        if left == right_val
+        if left.wtf_eqeq(right).val
           Wtf::Lang::LiteralType.true_val
         else
-          raise_rt_err(Lang::Exception::NotMatched, right.location_str, "#{left} != #{right_val}")
+          env = construct_env(right, current_binding)
+          raise_rt_err(Lang::Exception::NotMatched, right.wtf_to_s(env).val, "#{left} != #{right_val}")
         end
       else
-        raise_rt_err(Lang::Exception::NotMatched, right.location_str, "unknown left (#{left}) type")
+        env = construct_env(left, current_binding)
+        raise_rt_err(Lang::Exception::NotMatched, right.wtf_to_s(env).val, "unknown left (#{left}) type")
       end
     end
     # +left+ is a PMMapNode
@@ -403,18 +426,7 @@ module Wtf
     end
     # +left+ is a PMLstNode
     def execute_pm_list(left, right, current_binding)
-      if right.is_a?(LstNode)
-        if left.list.size > right.list.size
-          raise_rt_err(
-              Lang::Exception::NotMatched,
-              left.location_str,
-              "list size not matched: #{left.list.size} and #{right.list.size}"
-          )
-        end
-        right_obj = execute(right, current_binding)
-      else
-        right_obj = right
-      end
+      right_obj = execute(right, current_binding)
 
       if right_obj.is_a?(Wtf::Lang::ListType)
         if left.list.size > right_obj.val.size

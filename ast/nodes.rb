@@ -124,10 +124,10 @@ module Wtf
   end
 
 	class FnDefNode < AstNode
-		attr_reader :arg_list, :body, :native, :name, :bindings
-		def initialize(arg_list, body, **args)
+		attr_reader :args, :body, :native, :name, :bindings
+		def initialize(pm_node, body, **args)
 			super(**args)
-			@arg_list = arg_list
+			@args = pm_node
 			@body = body
 			@native = false
 			@name = '__unbound__'
@@ -139,21 +139,21 @@ module Wtf
 		end
     def to_json(*args)
       {
-        type: :fn_def,
-        arg_list: @arg_list,
-        body: body,
-				location: location_str
+          type: :fn_def,
+          args: @args,
+          body: body,
+          location: location_str
       }.to_json(*args)
 		end
 		def native?
 			@native
 		end
 		def bind_params(params)
-			unless params.size == @arg_list.size
-        raise "function at #{self.line}, #{self.col}, wrong number of arguments need #{@arg_list.size} but #{params.size} given"
+			unless params.size == @args.size
+        raise "function at #{self.line}, #{self.col}, wrong number of arguments need #{@args.size} but #{params.size} given"
 			end
-			@arg_list.size.times do |i|
-				@bindings.wtf_def_var(@arg_list[i].name, params[i])
+			@args.size.times do |i|
+				@bindings.wtf_def_var(@args[i].name, params[i])
 			end
 		end
 		def unbind_params

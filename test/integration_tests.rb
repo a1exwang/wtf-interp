@@ -27,7 +27,7 @@ def test_file(file_path, n)
     end
 
     expected = File.read(txt_file_path)
-    unless exit_status.to_i == 0 && output == expected && error == ''
+    unless exit_status.to_i == 0 && output == expected
       diff = Diffy::Diff.new(output, expected).to_s
       puts
       puts "!!!!!!!!!!!!!!!!!!!!!!!!!\n" +
