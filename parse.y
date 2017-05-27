@@ -145,37 +145,40 @@ rule
   # Map definition
   map_def: LBRAC map_list RBRAC { result = MapNode.new(val[1], loc_of(val[0])) }
   map_list: { result = [] }
-      | map_list_item { result = [val[0]] }
-      | map_list_item COMMA map_list {
-          result = [val[0], *val[2]]
-      }
+    | map_list_item { result = [val[0]] }
+    | map_list_item COMMA map_list {
+      result = [val[0], *val[2]]
+    }
   map_list_item: identifier COLON exp {
-          result = { key: val[0], value: val[2] }
-      }
+      result = { key: val[0], value: val[2] }
+    }
 
   # Conditional expression
   condition: IF exp LBRAC stmt_list RBRAC ELSE LBRAC stmt_list RBRAC {
-          result = IfNode.new(val[1], val[3], val[7], loc_of(val[0]))
-      }
+      result = IfNode.new(val[1], val[3], val[7], loc_of(val[0]))
+    }
+    | IF exp LBRAC stmt_list RBRAC {
+      result = IfNode.new(val[1], val[3], loc_of(val[0]))
+    }
 
   # Module definition
   mod_def: MODULE LBRAC stmt_list RBRAC {
-          result = ModNode.new(val[2], loc_of(val[0]))
-      }
+      result = ModNode.new(val[2], loc_of(val[0]))
+    }
   mod_scope: mod_scope_real {
-          result = ModRefNode.new(val[0], val[0].first ? loc_of(val[0].first) : nil)
-      }
+      result = ModRefNode.new(val[0], val[0].first ? loc_of(val[0].first) : nil)
+    }
   mod_scope_real: identifier COLON2 mod_scope_real {
-          result = [val[0], *val[2]]
-      }
-      | identifier COLON2 identifier {
-          result = [val[0], val[2]]
-      }
+      result = [val[0], *val[2]]
+    }
+    | identifier COLON2 identifier {
+      result = [val[0], val[2]]
+    }
 
   # Exceptions
   exception: EXCEPTION_BEGIN LBRAC stmt_list RBRAC EXCEPTION_RESCUE pm_ele LBRAC stmt_list RBRAC {
-          result = ExceptNode.new(val[2], val[5], val[7], loc_of(val[0]))
-      }
+      result = ExceptNode.new(val[2], val[5], val[7], loc_of(val[0]))
+    }
 
 ---- header
 	require_relative 'ast/nodes'

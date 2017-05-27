@@ -78,11 +78,11 @@ module Wtf
 
 	class IfNode < AstNode
 		attr_reader :exp, :true_list, :false_list
-		def initialize(exp, t, f = nil, **args)
+		def initialize(exp, t, f = [], **args)
 			super(**args)
 			@exp = exp
 			@true_list = t
-			@false_list = f
+      @false_list = f
 		end
 		def to_json(*args)
 			{
@@ -97,8 +97,8 @@ module Wtf
 			@exp.set_lexical_parent(p)
 			@true_list.each { |it| it.set_lexical_parent(p) }
 			@false_list.each { |it| it.set_lexical_parent(p) }
-		end
-	end
+    end
+  end
 
 	class StmtListNode < AstNode
 		attr_reader :stmt_list

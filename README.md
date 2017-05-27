@@ -160,10 +160,8 @@
 ### TODOs
 - syntax
   - regex
-  - "is" operator, binary comparison operator
-  - Don't need "main" function
-  - NO operator overriding
-  - Unify pattern matching and var definition
+  - map pattern matching on fn_def
+  - if no-else, if elsif else
 
 - stdlib
   - math

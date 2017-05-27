@@ -1,5 +1,8 @@
 # Change log for wtf-interpreter
 
+## [0.3.3] 2017-05-27
+- "if" statement without "else"
+
 ## [0.3.2] 2017-05-27
 - Syntax
   - Function definitions now supports
