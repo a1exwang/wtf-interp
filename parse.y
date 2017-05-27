@@ -79,6 +79,7 @@ rule
 	pm_map_non_empty: identifier COLON pm_ele { result = [{key: val[0], value: val[2]}] }
 	  | identifier COLON pm_ele COMMA pm_map_non_empty { result = [{key: val[0], value: val[2]}, *val[4]] }
 
+  # Expressions are those who have a value
 	exp: exp_math { result = val[0] }
 	  | exp_cmp { result = val[0] }
     | LPAR exp RPAR { result = val[1] }
@@ -94,6 +95,7 @@ rule
     | mod_def { result = val[0] }
     | mod_scope { result = val[0] }
     | condition { result = val[0] }
+    | case_pm { result = val[0] }
     | exception { result = val[0] }
 
 	# Assignment exp
@@ -159,6 +161,26 @@ rule
     }
     | IF exp LBRAC stmt_list RBRAC {
       result = IfNode.new(val[1], val[3], loc_of(val[0]))
+    }
+
+  # "case-when" expression
+  case_pm: CASE LPAR exp RPAR LBRAC when_list RBRAC {
+      result = CaseWhenNode.new(val[1], [val[4]], StmtListNode.new([]), loc_of(val[0]))
+    }
+    | CASE LPAR exp RPAR LBRAC when_list ELSE LBRAC stmt_list RBRAC RBRAC {
+      result = CaseWhenNode.new(
+        val[2],
+        val[4],
+        StmtListNode.new(val[7], loc_of(val[7])),
+        loc_of(val[0])
+      )
+    }
+
+  when_list: WHEN LPAR pm RPAR LBRAC stmt_list RBRAC {
+      result = [{pm_node: val[2], stmt_list: val[5]}]
+    }
+    | WHEN LPAR pm RPAR LBRAC stmt_list RBRAC when_list {
+      result = [{pm_node: val[2], stmt_list: val[5]}, *val[7]]
     }
 
   # Module definition

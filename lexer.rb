@@ -82,6 +82,10 @@ module Wtf
 								:IF
 							when /\Aelse\b/
 								:ELSE
+							when /\Acase\b/
+								:CASE
+							when /\Awhen\b/
+								:WHEN
 							when /\Amodule\b/
 								:MODULE
 							when /\Alet\b/

@@ -98,7 +98,37 @@ module Wtf
 			@true_list.each { |it| it.set_lexical_parent(p) }
 			@false_list.each { |it| it.set_lexical_parent(p) }
     end
-  end
+	end
+
+	class CaseWhenNode < AstNode
+		attr_reader :exp, :when_list, :else_list
+		def initialize(exp, when_list, else_stmt_list, **args)
+			super(**args)
+			@exp = exp
+			@when_list = when_list
+			@else_list = else_stmt_list
+		end
+		def to_json(*args)
+			{
+					type: :if,
+					exp: @exp,
+					when: @when_list,
+					else: @else_list
+			}.to_json(*args)
+		end
+		def set_lexical_parent(p)
+			super
+			@exp.set_lexical_parent(p)
+			@when_list.each do |when_item|
+				pm_node = when_item[:pm_node]
+				stmt_list_node = when_item[:stmt_list_node]
+				when_item[:bindings] = VM::Bindings.new(stmt_list_node, p)
+				pm_node.set_lexical_parent(p)
+				stmt_list_node.set_lexical_parent(when_item[:bindings])
+			end
+			@else_list.set_lexical_parent(p)
+		end
+	end
 
 	class StmtListNode < AstNode
 		attr_reader :stmt_list

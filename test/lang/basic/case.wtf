@@ -1,0 +1,14 @@
+fn = ->(a) {
+  case (a) {
+    when ({x: x}) {
+      x;
+    }
+    else {
+      Nil;
+    }
+  };
+};
+
+puts(fn(1));
+puts(fn({x: x}));
+puts(fn("abc"));

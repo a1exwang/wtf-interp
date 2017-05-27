@@ -125,17 +125,23 @@
   puts(a);
   puts(b);
   puts(c);
-
+  
   let d = 4;
   let {} = {};
   let [] = [];
   let [{e: e}] = [{e: 5}];
   puts(d);
   puts(e);
-
+  
   let [f, g, _] = [1, 2, 3];
   let [h, i, *j] = [1, 2, 3, 4, 5];
   puts(j);
+  
+  let k, l, m = [4, 5, 6];
+  puts(k);
+
+  let n: {p: p}, o: o = {n: {p: 5}, o: 8};
+  puts(p);
 ```
 
 - Exceptions
