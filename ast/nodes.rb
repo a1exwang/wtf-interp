@@ -101,12 +101,13 @@ module Wtf
 	end
 
 	class CaseWhenNode < AstNode
-		attr_reader :exp, :when_list, :else_list
+		attr_reader :exp, :when_list, :else_list, :else_bindings
 		def initialize(exp, when_list, else_stmt_list, **args)
 			super(**args)
 			@exp = exp
 			@when_list = when_list
 			@else_list = else_stmt_list
+			@else_bindings = nil
 		end
 		def to_json(*args)
 			{
@@ -121,12 +122,15 @@ module Wtf
 			@exp.set_lexical_parent(p)
 			@when_list.each do |when_item|
 				pm_node = when_item[:pm_node]
-				stmt_list_node = when_item[:stmt_list_node]
+				stmt_list_node = when_item[:stmt_list]
 				when_item[:bindings] = VM::Bindings.new(stmt_list_node, p)
-				pm_node.set_lexical_parent(p)
+				pm_node.set_lexical_parent(when_item[:bindings])
 				stmt_list_node.set_lexical_parent(when_item[:bindings])
+      end
+      if @else_list
+				@else_bindings = VM::Bindings.new(else_list, p)
+        @else_list.set_lexical_parent(@else_bindings)
 			end
-			@else_list.set_lexical_parent(p)
 		end
 	end
 
@@ -281,6 +285,9 @@ module Wtf
 					location: location_str
 			}.to_json(*args)
 		end
+		def wtf_value
+			Wtf::Lang::IntType.new(@value)
+		end
 	end
 
 	class StrNode < LiteralNode
@@ -295,6 +302,9 @@ module Wtf
 					value: @value,
 					location: location_str
 			}.to_json(*args)
+		end
+		def wtf_value
+			Wtf::Lang::StringType.new(@value)
 		end
 	end
 

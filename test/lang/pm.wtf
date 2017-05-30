@@ -20,3 +20,6 @@ puts(k);
 
 let n: {p: p}, o: o = {n: {p: 5}, o: 8};
 puts(p);
+
+let 1 = 1;
+let "abc" = "abc";

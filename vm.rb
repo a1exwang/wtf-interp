@@ -301,12 +301,49 @@ module Wtf
         else
           execute_stmt_list(node.false_list, current_binding)
         end
+      when CaseWhenNode
+        val = self.execute(node.exp, current_binding)
+        result = nil
+        node.when_list.each do |when_item|
+          pm = when_item[:pm_node]
+          stmt_list = when_item[:stmt_list]
+
+          success = true
+          begin
+            execute_pm(pm, val, when_item[:bindings])
+          rescue Lang::Exception::NotMatched
+            success = false
+          end
+
+          if success
+            result = execute_stmt_list(stmt_list.stmt_list, when_item[:bindings])
+            break
+          end
+        end
+
+        if result.nil?
+          if node.else_list
+            result = execute_stmt_list(node.else_list.stmt_list, node.else_bindings)
+          else
+            env = self.construct_env(node, current_binding)
+            raise_rt_err(
+                Lang::Exception::NotMatched,
+                node.location_str,
+                "none of the case statements matched for expression #{val.wtf_to_s(env).val}"
+            )
+          end
+        end
+
+        result = Wtf::Lang::NilType.nil_val if result.nil?
+        result
       when PMNode
         execute_pm_node(node, current_binding)
       when Wtf::Lang::LiteralType, Wtf::Lang::SimpleType
         return node
       when StmtListNode
         execute_stmt_list(node.stmt_list, current_binding)
+      when Wtf::Lang::WtfType
+        node
       else
         raise "unknown node type: '#{node.class}', value: '#{node}'"
       end
@@ -366,13 +403,18 @@ module Wtf
         #   right_val = right_val.val[0]
         # end
         current_binding.wtf_def_var(left.name, right_val)
-      when Wtf::Lang::StringType, Wtf::Lang::IntType
-        right_val = execute(right)
-        if left.wtf_eqeq(right).val
+      when StrNode, IntNode
+        env = construct_env(right, current_binding)
+        left_val = execute(left, current_binding)
+        right_val = execute(right, current_binding)
+        if left_val.wtf_eqeq(env, right_val).val
           Wtf::Lang::LiteralType.true_val
         else
-          env = construct_env(right, current_binding)
-          raise_rt_err(Lang::Exception::NotMatched, right.wtf_to_s(env).val, "#{left} != #{right_val}")
+          raise_rt_err(
+              Lang::Exception::NotMatched,
+              right.wtf_to_s(env).val,
+              "#{left_val.wtf_to_s(env).val} != #{right_val}"
+          )
         end
       else
         env = construct_env(left, current_binding)

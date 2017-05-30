@@ -142,6 +142,25 @@
 
   let n: {p: p}, o: o = {n: {p: 5}, o: 8};
   puts(p);
+  
+  # case-when statments supports pattern matching
+  fn = ->(a) {
+    case (a) {
+      when (1) {
+        "a";
+      }
+      when ({x: x}) {
+        x;
+      }
+      else {
+        Nil;
+      }
+    };
+};
+
+puts(fn(1));
+puts(fn({x: "x"}));
+puts(fn("abc"));
 ```
 
 - Exceptions

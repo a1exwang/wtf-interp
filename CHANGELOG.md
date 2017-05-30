@@ -1,5 +1,11 @@
 # Change log for wtf-interpreter
 
+## [0.4.0] 2017-05-30
+- Syntax
+  - Pattern matching case-when statments
+- Bug fix
+  - Fix constant pattern matching bug
+
 ## [0.3.3] 2017-05-27
 - "if" statement without "else"
 

@@ -42,10 +42,10 @@ module Wtf
         StringType.new(@val.to_s)
       end
       def wtf_eqeq(env, other)
-        BoolType.new(@val == other.val)
+        BoolType.new(other.respond_to?(:val) && @val == other.val)
       end
       def wtf_neq(env, other)
-        BoolType.new(@val != other.val)
+        BoolType.new(!wtf_eqeq(env, other).val)
       end
       def wtf_lt(env, other)
         BoolType.new(@val < other.val)
@@ -165,6 +165,12 @@ module Wtf
         else
           raise
         end
+      end
+      def wtf_to_s(env)
+        data = @hash.map do |key, val|
+          "#{key}: \"#{val.wtf_to_s(env)}\""
+        end
+        StringType.new("{#{data.join(', ')}}")
       end
     end
     class NumericType < SimpleType

@@ -1,5 +1,8 @@
 fn = ->(a) {
   case (a) {
+    when (1) {
+      "a";
+    }
     when ({x: x}) {
       x;
     }
@@ -10,5 +13,5 @@ fn = ->(a) {
 };
 
 puts(fn(1));
-puts(fn({x: x}));
+puts(fn({x: "x"}));
 puts(fn("abc"));
