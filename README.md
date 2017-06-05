@@ -191,6 +191,7 @@ puts(fn("abc"));
 - stdlib
   - math
   - io
+  - promise
   
 ### Language Design 
 
